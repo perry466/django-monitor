@@ -14,3 +14,8 @@ from django.core.asgi import get_asgi_application
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'djangoproject.settings')
 
 application = get_asgi_application()
+
+
+# 启动定时任务
+from monitor.tasks import start_scheduler
+start_scheduler()

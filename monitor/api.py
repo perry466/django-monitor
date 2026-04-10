@@ -44,6 +44,58 @@ def ping_api(request):
         'result': result
     })
 
+# =====================
+# 6. 多目标 Ping 监控 API（供图表使用）
+# =====================
+from django.utils import timezone
+from monitor.models import MonitorResult   # 确保导入正确
+
+TARGETS = [
+    {'name': '8.8.8.8', 'address': '8.8.8.8'},
+    {'name': '1.1.1.1', 'address': '1.1.1.1'},
+    {'name': 'baidu.com', 'address': 'baidu.com'},
+    {'name': '114.114.114.114', 'address': '114.114.114.114'},
+]
+
+def multi_ping_api(request):
+    """返回4个目标的最新监测结果"""
+    try:
+        results = []
+        latency_data = []
+
+        for target in TARGETS:
+            # 查询该目标最新的 MonitorResult 记录
+            latest = MonitorResult.objects.filter(
+                target__address=target['address']
+            ).order_by('-timestamp').first()
+
+            if latest:
+                ping_time = latest.ping_time or 0
+                packet_loss = latest.packet_loss or 0
+                timestamp = latest.timestamp.strftime('%H:%M:%S')
+            else:
+                ping_time = 0
+                packet_loss = 0
+                timestamp = '无数据'
+
+            results.append({
+                'target': target['name'],
+                'ping_time': ping_time,
+                'packet_loss': packet_loss,
+                'timestamp': timestamp
+            })
+            latency_data.append(round(ping_time, 1))
+
+        return success({
+            'targets': [t['name'] for t in TARGETS],
+            'labels': [t['name'] for t in TARGETS],
+            'latency_data': latency_data,
+            'results': results
+        })
+
+    except Exception as e:
+        return error(f'获取多目标数据失败: {str(e)}')
+
 
 # =====================
 # 2. TCP端口检测

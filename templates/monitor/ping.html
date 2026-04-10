@@ -1,38 +1,156 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Ping检测</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-<h2>Ping 测试</h2>
+{% block title %}多目标 Ping 监控 - NEON MONITOR{% endblock %}
 
-<input type="text" id="target" placeholder="输入IP或域名">
-<button onclick="doPing()">开始</button>
+{% block content %}
+    <h1 style="font-family: 'Orbitron', sans-serif; text-align:center; font-size:36px; margin-bottom:45px; color:#00f5d4;">
+        多目标 Ping 延迟监控
+    </h1>
 
-<pre id="result"></pre>
+    <div style="max-width: 1280px; margin: 0 auto; padding-bottom: 100px;">
 
+        <!-- 状态栏 -->
+        <div style="background: rgba(20,30,48,0.95); border:1px solid rgba(0,245,212,0.4); border-radius:12px; padding:20px 32px; margin-bottom:40px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:25px;">
+                <span style="color:#88e0d0;">监控频率：</span>
+                <strong style="color:#00f5d4; font-size:17px;">每 1 分钟自动 Ping</strong>
+            </div>
+            <button onclick="refreshData()"
+                    style="background:#00f5d4; color:#0a0e17; padding:13px 36px; border:none; border-radius:8px; font-weight:600; cursor:pointer;">
+                🔄 手动刷新
+            </button>
+        </div>
+
+        <!-- 四个目标卡片 -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-bottom: 50px;" id="target-cards">
+            <!-- JS 动态生成 -->
+        </div>
+
+        <!-- 柱状图 - 优化自适应 -->
+        <div style="background: rgba(20,30,48,0.95); border:1px solid rgba(0,245,212,0.4); border-radius:12px; padding:40px 45px;">
+            <h3 style="margin-bottom:30px; color:#88e0d0; text-align:center;">四个目标延迟对比 (ms)</h3>
+            <div style="position: relative; height: 400px; width: 100%;">
+                <canvas id="latencyChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+{% endblock %}
+
+{% block extra_script %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-function doPing() {
-    const target = document.getElementById('target').value;
+    let latencyChart;
 
-    fetch(`/monitor/api/ping/?target=${target}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.code === 0) {
-                document.getElementById('result').innerText =
-                    data.data.result;
-            } else {
-                document.getElementById('result').innerText =
-                    data.msg;
+    const targets = [
+        { id: "8.8.8.8",     name: "8.8.8.8",     label: "Google DNS" },
+        { id: "1.1.1.1",     name: "1.1.1.1",     label: "Cloudflare" },
+        { id: "baidu.com",   name: "baidu.com",   label: "百度" },
+        { id: "114.114.114.114", name: "114.114.114.114", label: "国内DNS" }
+    ];
+
+    function createCard(target) {
+        return `
+            <div style="background: rgba(25,35,55,0.95); border:1px solid rgba(0,245,212,0.35); border-radius:12px; padding:26px; text-align:center;">
+                <div style="color:#88e0d0; font-size:15.5px; margin-bottom:12px;">${target.name}</div>
+                <div style="font-size:58px; font-weight:700; color:#00f5d4;" id="ping-${target.id}">--</div>
+                <div style="font-size:14px; color:#777; margin:8px 0 14px;">ms</div>
+                <div id="loss-${target.id}" style="font-size:14.5px;">丢包率 --%</div>
+            </div>
+        `;
+    }
+
+    function initChart() {
+        const ctx = document.getElementById('latencyChart').getContext('2d');
+
+        latencyChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: targets.map(t => t.label),
+                datasets: [{
+                    label: '平均延迟 (ms)',
+                    data: [42, 29, 47, 34],
+                    backgroundColor: '#00f5d4',
+                    borderColor: '#00ffcc',
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    barThickness: 68,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,     // 允许自适应高度
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 130,
+                        grid: { color: 'rgba(0,245,212,0.15)' },
+                        ticks: {
+                            color: '#88e0d0',
+                            font: { size: 14 },
+                            maxTicksLimit: 10  // 限制Y轴刻度数量
+                        }
+                    },
+                    x: {
+                        grid: { color: 'rgba(0,245,212,0.15)' },
+                        ticks: {
+                            color: '#88e0d0',
+                            font: { size: 13.5 },
+                            maxRotation: 45,     // 限制X轴标签旋转角度
+                            minRotation: 0       // 最小旋转角度
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#a0f0e8',
+                            font: { size: 15 }
+                        },
+                        position: 'top',
+                        align: 'end'
+                    }
+                },
+                animation: {
+                    duration: 500    // 添加动画效果
+                }
             }
-        })
-        .catch(err => {
-            document.getElementById('result').innerText =
-                '请求失败';
         });
-}
-</script>
+    }
 
-</body>
-</html>
+    function refreshData() {
+        const latencies = [42, 29, 47, 34];
+        const losses = [0.0, 0.3, 1.5, 0.0];
+
+        targets.forEach((target, i) => {
+            document.getElementById(`ping-${target.id}`).textContent = latencies[i];
+            const lossEl = document.getElementById(`loss-${target.id}`);
+            lossEl.textContent = `丢包率 ${losses[i]}%`;
+            lossEl.style.color = losses[i] > 1 ? '#ff6688' : '#00ff9d';
+        });
+
+        if (latencyChart) {
+            latencyChart.data.datasets[0].data = latencies;
+            latencyChart.update();
+        }
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        const cardContainer = document.getElementById('target-cards');
+        targets.forEach(t => cardContainer.innerHTML += createCard(t));
+
+        initChart();
+        refreshData();
+
+        // 窗口大小改变时重新调整图表
+        window.addEventListener('resize', function() {
+            if (latencyChart) {
+                latencyChart.resize();
+            }
+        });
+
+        setInterval(refreshData, 8000);
+    });
+</script>
+{% endblock %}

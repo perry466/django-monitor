@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NEON MONITOR{% endblock %}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: #0a0e17;
+            color: #00f5d4;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 顶部栏 */
+        .top-bar {
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid #00f5d4;
+            padding: 16px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 50;
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: #00f5d4;
+        }
+
+        .time { font-size: 15px; color: #88f0e0; }
+
+        /* 贴边展开按钮 */
+        .toggle-btn {
+            position: fixed;
+            left: 12px;
+            bottom: 40px;
+            width: 46px; height: 46px;
+            background: rgba(0, 245, 212, 0.12);
+            border: 2px solid #00f5d4;
+            border-radius: 50%;
+            color: #00f5d4;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 200;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
+        }
+        .toggle-btn:hover {
+            background: rgba(0, 245, 212, 0.25);
+            transform: scale(1.1);
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            position: fixed;
+            left: -280px;
+            top: 0; bottom: 0;
+            width: 280px;
+            background: rgba(15, 23, 42, 0.98);
+            border-right: 1px solid #00f5d4;
+            transition: left 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+            z-index: 100;
+            padding-top: 80px;
+        }
+        .sidebar.show { left: 0; }
+
+        .sidebar-header {
+            padding: 0 28px 20px;
+            border-bottom: 1px solid rgba(0, 245, 212, 0.2);
+        }
+        .sidebar-logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            color: #00f5d4;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 28px;
+            color: #a0f0e8;
+            text-decoration: none;
+            font-size: 15.5px;
+            transition: all 0.25s;
+        }
+        .menu-item:hover {
+            background: rgba(0, 245, 212, 0.15);
+            color: #fff;
+        }
+        .menu-item i { margin-right: 16px; font-size: 19px; width: 24px; }
+
+        /* 主内容 */
+        .main-content {
+            margin-left: 0;
+            padding: 40px 50px 30px;
+            transition: margin-left 0.4s ease;
+        }
+        .sidebar.show + .main-content {
+            margin-left: 280px;
+        }
+
+        {% block extra_style %}{% endblock %}
+    </style>
+</head>
+<body>
+
+    <!-- 贴边展开按钮 -->
+    <div class="toggle-btn" id="toggle-btn">☰</div>
+
+    <!-- 侧边栏 -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">NEON MONITOR</div>
+        </div>
+        <div class="menu-items">
+            <a href="/" class="menu-item"><i>📊</i> 系统仪表盘</a>
+            <a href="/monitor/ping/" class="menu-item"><i>⚡</i> 延迟测试 (Ping)</a>
+            <a href="#" class="menu-item"><i>📉</i> 丢包率测试</a>
+            <a href="#" class="menu-item"><i>🌐</i> HTTP 响应时间</a>
+            <a href="#" class="menu-item"><i>📈</i> 网络抖动</a>
+            <a href="#" class="menu-item"><i>🔍</i> DNS 解析时间</a>
+            <a href="#" class="menu-item"><i>🔄</i> TCP 重传率</a>
+            <a href="/targets/config/" class="menu-item"><i>⚙️</i> 多目标监控配置</a>
+        </div>
+    </div>
+
+    <!-- 顶部栏 -->
+    <div class="top-bar">
+        <div class="logo">NEON MONITOR</div>
+        <div class="time" id="current-time"></div>
+    </div>
+
+    <!-- 主内容块 -->
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('toggle-btn');
+
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('show');
+            toggleBtn.textContent = sidebar.classList.contains('show') ? '✕' : '☰';
+        });
+
+        // 时间更新
+        function updateTime() {
+            const el = document.getElementById('current-time');
+            el.textContent = new Date().toLocaleString('zh-CN', {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+    </script>
+
+    {% block extra_script %}{% endblock %}
+</body>
+</html>

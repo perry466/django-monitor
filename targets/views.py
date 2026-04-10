@@ -1,170 +1,81 @@
-import subprocess
-import socket
-import time
-import threading
 from django.shortcuts import render
 from django.http import JsonResponse
-import re
-import requests
-import dns.resolver
+from django.views.decorators.csrf import csrf_exempt
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-def index(request):
-    return render(request, 'targets/index.html')
+def config_page(request):
+    """多目标监控配置页面"""
+    return render(request, 'targets/config.html')
 
 
-def check_targets(request):
+def dashboard_page(request):
+    """多目标监控仪表盘页面"""
+    return render(request, 'targets/dashboard.html')
+
+
+@csrf_exempt
+def sync_targets(request):
+    """同步目标配置到服务器"""
     if request.method == 'POST':
-        targets = [
-            request.POST.get('target1', ''),
-            request.POST.get('target2', ''),
-            request.POST.get('target3', ''),
-            request.POST.get('target4', '')
-        ]
+        try:
+            data = json.loads(request.body)
+            # 在这里可以将目标配置保存到数据库
+            # 示例：保存到模型中
+            # for key, value in data.items():
+            #     if value:
+            #         TargetConfig.objects.update_or_create(
+            #             name=key,
+            #             defaults={'address': value}
+            #         )
 
-        results = []
-        threads = []
+            return JsonResponse({'status': 'success', 'message': '配置同步成功'})
+        except Exception as e:
+            logger.error(f"同步目标配置失败: {str(e)}")
+            return JsonResponse({'status': 'error', 'message': '同步失败'})
 
-        for i in range(4):
-            thread = threading.Thread(target=check_single_target, args=(targets[i], results, i))
-            threads.append(thread)
-            thread.start()
-
-        for thread in threads:
-            thread.join()
-
-        return JsonResponse({'results': results})
-
-    return JsonResponse({'error': 'Invalid method'})
+    return JsonResponse({'status': 'error', 'message': '只支持POST请求'})
 
 
-def check_single_target(target, results, index):
-    if not target.strip():
-        results.append({
-            'index': index,
-            'latency': 'N/A',
-            'packet_loss': 'N/A',
-            'http_time': 'N/A',
-            'jitter': 'N/A',
-            'dns_time': 'N/A',
-            'tcp_retransmit': 'N/A'
-        })
-        return
-
-    # 移除协议前缀，只保留域名或IP
-    clean_target = target.replace('http://', '').replace('https://', '').split('/')[0]
-
-    result = {
-        'index': index,
-        'latency': get_latency(clean_target),
-        'packet_loss': get_packet_loss(clean_target),
-        'http_time': get_http_response_time(target),
-        'jitter': get_jitter(clean_target),
-        'dns_time': get_dns_time(clean_target),
-        'tcp_retransmit': get_tcp_retransmit(clean_target)
-    }
-
-    results.append(result)
-
-
-def get_latency(target):
+def get_multi_target_monitoring_data(request):
+    """获取多目标监控数据"""
     try:
-        # 使用ping命令测试延迟
-        result = subprocess.run(['ping', '-c', '4', target],
-                                capture_output=True, text=True, timeout=10)
-        if result.returncode == 0:
-            lines = result.stdout.split('\n')
-            for line in lines:
-                if 'avg' in line and '=' in line:
-                    avg_match = re.search(r'(\d+\.?\d*)/(\d+\.?\d*)/(\d+\.?\d*)/(\d+\.?\d*)', line)
-                    if avg_match:
-                        avg_time = float(avg_match.group(2))
-                        return f"{avg_time:.2f}ms"
-        return "N/A"
-    except:
-        return "N/A"
+        # 这里应该从数据库或缓存中获取真实的监控数据
+        # 模拟数据结构
+        monitoring_data = {
+            'ping_data': [45, 52, 38, 61],  # 各目标延迟(ms)
+            'loss_data': [0.1, 0.2, 0.0, 0.3],  # 各目标丢包率(%)
+            'http_data': [120, 150, 95, 180],  # 各目标HTTP响应时间(ms)
+            'jitter_data': [5, 8, 3, 12],  # 各目标网络抖动(ms)
+            'tcp_retransmit_data': [0.01, 0.02, 0.005, 0.03],  # 各目标TCP重传率(%)
+            'dns_data': [generate_dns_data()],  # DNS解析时间分布
+            'targets_status': [True, True, False, True]  # 各目标在线状态
+        }
+
+        return JsonResponse(monitoring_data)
+    except Exception as e:
+        logger.error(f"获取监控数据失败: {str(e)}")
+        return JsonResponse({'error': '获取数据失败'}, status=500)
 
 
-def get_packet_loss(target):
-    try:
-        result = subprocess.run(['ping', '-c', '4', target],
-                                capture_output=True, text=True, timeout=10)
-        if result.returncode == 0:
-            lines = result.stdout.split('\n')
-            for line in lines:
-                if 'packet loss' in line:
-                    match = re.search(r'(\d+)% packet loss', line)
-                    if match:
-                        loss_percent = match.group(1)
-                        return f"{loss_percent}%"
-        return "N/A"
-    except:
-        return "N/A"
+def generate_dns_data():
+    """生成DNS解析时间数据（24小时分布）"""
+    import random
+    return [random.randint(10, 200) for _ in range(24)]
 
 
-def get_http_response_time(url):
-    try:
-        if not url.startswith(('http://', 'https://')):
-            url = 'http://' + url
+# 如果需要数据库模型，可以创建如下模型
+"""
+class TargetConfig(models.Model):
+    name = models.CharField(max_length=20, unique=True)
+    address = models.CharField(max_length=255)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-        start_time = time.time()
-        response = requests.get(url, timeout=10)
-        end_time = time.time()
-
-        response_time = (end_time - start_time) * 1000  # 转换为毫秒
-        return f"{response_time:.2f}ms"
-    except:
-        return "N/A"
-
-
-def get_jitter(target):
-    try:
-        result = subprocess.run(['ping', '-c', '10', target],
-                                capture_output=True, text=True, timeout=15)
-        if result.returncode == 0:
-            lines = result.stdout.split('\n')
-            times = []
-            for line in lines:
-                if 'time=' in line:
-                    time_match = re.search(r'time=(\d+\.?\d*) ms', line)
-                    if time_match:
-                        times.append(float(time_match.group(1)))
-
-            if len(times) > 1:
-                # 计算抖动（相邻延迟差值的平均值）
-                jitters = []
-                for i in range(1, len(times)):
-                    jitters.append(abs(times[i] - times[i - 1]))
-
-                avg_jitter = sum(jitters) / len(jitters)
-                return f"{avg_jitter:.2f}ms"
-        return "N/A"
-    except:
-        return "N/A"
-
-
-def get_dns_time(target):
-    try:
-        resolver = dns.resolver.Resolver()
-        resolver.timeout = 10
-        resolver.lifetime = 10
-
-        start_time = time.time()
-        resolver.resolve(target, 'A')
-        end_time = time.time()
-
-        dns_time = (end_time - start_time) * 1000  # 转换为毫秒
-        return f"{dns_time:.2f}ms"
-    except:
-        return "N/A"
-
-
-def get_tcp_retransmit(target):
-    try:
-        # 这里模拟TCP重传率检测，实际环境中需要更复杂的实现
-        # 在实际应用中，这通常需要网络抓包工具如tcpdump
-        # 这里我们简单地返回一个模拟值
-        # 实际环境中需要使用更复杂的方法来检测TCP重传
-        return "0.00%"
-    except:
-        return "N/A"
+    def __str__(self):
+        return f"{self.name}: {self.address}"
+"""

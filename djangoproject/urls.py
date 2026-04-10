@@ -15,13 +15,16 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path,include
-from monitor.views import index
-from django.shortcuts import redirect
+from django.urls import path, include
+from django.http import HttpResponse
+from monitor.views import dashboard
+
+def home(request):
+    return HttpResponse("监控系统首页")
+
 
 urlpatterns = [
+    path('', dashboard),
     path('admin/', admin.site.urls),
-    path('', index, name='index'),
-    path('targets/',include('targets.urls')),
-    path('monitor/',include('monitor.urls')),
+    path('monitor/', include('monitor.urls')),
 ]

@@ -1,0 +1,617 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网络性能监控系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #0ea5e9;
+            --secondary-color: #0284c7;
+            --dark-bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #e2e8f0;
+            --border-color: #334155;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg), #1e3a8a);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 头部导航 */
+        .header {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+        }
+
+        .nav-menu {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+
+        .nav-item {
+            text-decoration: none;
+            color: var(--text-color);
+            padding: 10px 20px;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(14, 165, 233, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .nav-item:hover::before {
+            left: 100%;
+        }
+
+        .nav-item:hover {
+            background: rgba(14, 165, 233, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(14, 165, 233, 0.3);
+        }
+
+        /* 主标题 */
+        .page-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 40px;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 10px rgba(14, 165, 233, 0.3);
+        }
+
+        /* 统计卡片网格 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(145deg, var(--card-bg), #2d3748);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color), var(--primary-color));
+            z-index: -1;
+            border-radius: 18px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(14, 165, 233, 0.4);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .stat-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(14, 165, 233, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 15px 0;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-trend {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--success-color);
+        }
+
+        /* 图表区域 */
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .chart-card {
+            background: linear-gradient(145deg, var(--card-bg), #2d3748);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(14, 165, 233, 0.3);
+        }
+
+        .chart-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        /* 状态指示器 */
+        .status-indicators {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success-color);
+        }
+
+        .status-dot.warning {
+            background: var(--warning-color);
+        }
+
+        .status-dot.danger {
+            background: var(--danger-color);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .nav-menu {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .nav-links {
+                justify-content: center;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .stat-value {
+                font-size: 2rem;
+            }
+
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 250px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 10px 15px;
+            }
+
+            .nav-item {
+                padding: 8px 15px;
+                font-size: 0.9rem;
+            }
+
+            .stat-card {
+                padding: 20px;
+            }
+
+            .stat-value {
+                font-size: 1.8rem;
+            }
+        }
+
+        /* 加载动画 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stat-card, .chart-card {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        .stat-card:nth-child(2) { animation-delay: 0.1s; }
+        .stat-card:nth-child(3) { animation-delay: 0.2s; }
+        .stat-card:nth-child(4) { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部导航 -->
+        <header class="header">
+            <nav class="nav-menu">
+                <div class="logo">网络监控系统</div>
+                <div class="nav-links">
+                    <a href="#" class="nav-item">延迟测试</a>
+                    <a href="#" class="nav-item">丢包率测试</a>
+                    <a href="#" class="nav-item">HTTP响应时间</a>
+                    <a href="#" class="nav-item">网络抖动</a>
+                    <a href="#" class="nav-item">DNS解析时间</a>
+                    <a href="#" class="nav-item">TCP重传率</a>
+                    <a href="#" class="nav-item">多目标监控配置</a>
+                </div>
+            </nav>
+        </header>
+
+        <!-- 主标题 -->
+        <h1 class="page-title">网络性能监控仪表板</h1>
+
+        <!-- 统计卡片 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <h3 class="stat-title">内存使用率</h3>
+                    <div class="stat-icon">📊</div>
+                </div>
+                <div class="stat-value" id="memory-value">65%</div>
+                <div class="stat-trend">↑ 2.3% 近期趋势</div>
+                <div class="status-indicators">
+                    <div class="status-item">
+                        <div class="status-dot"></div>
+                        <span>正常</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <h3 class="stat-title">磁盘使用率</h3>
+                    <div class="stat-icon">💾</div>
+                </div>
+                <div class="stat-value" id="disk-value">45%</div>
+                <div class="stat-trend">↓ 1.2% 近期趋势</div>
+                <div class="status-indicators">
+                    <div class="status-item">
+                        <div class="status-dot"></div>
+                        <span>正常</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <h3 class="stat-title">带宽使用率</h3>
+                    <div class="stat-icon">🌐</div>
+                </div>
+                <div class="stat-value" id="bandwidth-value">30%</div>
+                <div class="stat-trend">→ 稳定</div>
+                <div class="status-indicators">
+                    <div class="status-item">
+                        <div class="status-dot"></div>
+                        <span>正常</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <h3 class="stat-title">在线设备</h3>
+                    <div class="stat-icon">💻</div>
+                </div>
+                <div class="stat-value" id="device-count">24</div>
+                <div class="stat-trend">+3 新增设备</div>
+                <div class="status-indicators">
+                    <div class="status-item">
+                        <div class="status-dot"></div>
+                        <span>全部在线</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="charts-section">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">资源使用趋势</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="resourceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">性能指标分布</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量用于存储图表实例
+        let resourceChart, performanceChart;
+        let currentMemory = 65;
+        let currentDisk = 45;
+        let currentBandwidth = 30;
+
+        // 初始化图表
+        function initCharts() {
+            // 资源使用趋势图
+            const resourceCtx = document.getElementById('resourceChart').getContext('2d');
+            resourceChart = new Chart(resourceCtx, {
+                type: 'line',
+                data: {
+                    labels: ['1分钟前', '5分钟前', '10分钟前', '15分钟前', '20分钟前', '25分钟前', '30分钟前'],
+                    datasets: [
+                        {
+                            label: '内存使用率',
+                            data: [60, 62, 63, 64, 65, 64, 65],
+                            borderColor: '#0ea5e9',
+                            backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '磁盘使用率',
+                            data: [42, 43, 44, 45, 45, 44, 45],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '带宽使用率',
+                            data: [28, 29, 30, 30, 30, 29, 30],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e2e8f0'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 性能指标分布图
+            const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            performanceChart = new Chart(performanceCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['内存使用', '磁盘使用', '带宽使用', '空闲资源'],
+                    datasets: [{
+                        data: [currentMemory, currentDisk, currentBandwidth, 100 - currentMemory - currentDisk - currentBandwidth],
+                        backgroundColor: [
+                            '#0ea5e9',
+                            '#10b981',
+                            '#f59e0b',
+                            '#64748b'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e2e8f0',
+                                padding: 20
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 更新统计数据
+        function updateStats() {
+            // 模拟数据变化
+            currentMemory = Math.max(40, Math.min(80, currentMemory + (Math.random() - 0.5) * 3));
+            currentDisk = Math.max(30, Math.min(70, currentDisk + (Math.random() - 0.5) * 2));
+            currentBandwidth = Math.max(20, Math.min(60, currentBandwidth + (Math.random() - 0.5) * 1));
+
+            // 更新DOM
+            document.getElementById('memory-value').textContent = Math.round(currentMemory) + '%';
+            document.getElementById('disk-value').textContent = Math.round(currentDisk) + '%';
+            document.getElementById('bandwidth-value').textContent = Math.round(currentBandwidth) + '%';
+
+            // 更新饼图
+            performanceChart.data.datasets[0].data = [
+                Math.round(currentMemory),
+                Math.round(currentDisk),
+                Math.round(currentBandwidth),
+                100 - Math.round(currentMemory) - Math.round(currentDisk) - Math.round(currentBandwidth)
+            ];
+            performanceChart.update();
+
+            // 更新线图（添加新数据点）
+            const newDataPoint = Math.round(currentMemory);
+            resourceChart.data.datasets[0].data.push(newDataPoint);
+            if (resourceChart.data.datasets[0].data.length > 7) {
+                resourceChart.data.datasets[0].data.shift();
+            }
+            resourceChart.update();
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+
+            // 每5秒更新一次数据
+            setInterval(updateStats, 5000);
+        });
+
+        // 窗口大小改变时重新调整图表
+        window.addEventListener('resize', function() {
+            if (resourceChart) resourceChart.resize();
+            if (performanceChart) performanceChart.resize();
+        });
+
+        // 数据接口预留函数
+        function refreshData() {
+            // 此处预留Django后端数据接口调用
+            console.log('数据刷新接口已预留');
+        }
+
+        // 页面可见性改变时暂停/恢复更新
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                // 页面隐藏时停止更新
+            } else {
+                // 页面显示时继续更新
+                updateStats();
+            }
+        });
+    </script>
+</body>
+</html>

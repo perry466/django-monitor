@@ -17,9 +17,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path,include
 from monitor.views import index
+from django.shortcuts import redirect
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', index, name='index'),
     path('targets/',include('targets.urls')),
+    path('monitor/',include('monitor.urls')),
 ]

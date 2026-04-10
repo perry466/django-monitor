@@ -1,14 +1,16 @@
 from django.urls import path
+from . import api
 from . import views
 
-app_name = 'monitor'
-
 urlpatterns = [
-    path('', views.index, name='index'),  # 首页
-    path('latency/', views.latency, name='latency'),  # 延迟测试
-    path('ping/', views.ping, name='ping'),
-    path('http/', views.http, name='http'),
-    path('jitter/', views.jitter, name='jitter'),
-    path('dns/', views.dns, name='dns'),
-    path('tcp/', views.tcp, name='tcp'),
+    # 页面
+    path('ping/', views.ping),
+
+    # API
+    path('api/ping/', api.ping_api),
+    path('api/tcp/', api.tcp_api),
+    path('api/http/', api.http_api),
+    path('api/dns/', api.dns_api),
+    path('api/full/', api.full_check_api),
+    path('api/system/', api.system_api),
 ]

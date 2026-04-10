@@ -1,10 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>ping</title>
+    <title>Ping检测</title>
 </head>
 <body>
-<p>ping测试</p>
+
+<h2>Ping 测试</h2>
+
+<input type="text" id="target" placeholder="输入IP或域名">
+<button onclick="doPing()">开始</button>
+
+<pre id="result"></pre>
+
+<script>
+function doPing() {
+    const target = document.getElementById('target').value;
+
+    fetch(`/monitor/api/ping/?target=${target}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.code === 0) {
+                document.getElementById('result').innerText =
+                    data.data.result;
+            } else {
+                document.getElementById('result').innerText =
+                    data.msg;
+            }
+        })
+        .catch(err => {
+            document.getElementById('result').innerText =
+                '请求失败';
+        });
+}
+</script>
+
 </body>
 </html>

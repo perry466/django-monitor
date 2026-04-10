@@ -8,6 +8,7 @@ urlpatterns = [
 
     # API
     path('api/ping/', api.ping_api),
+    path('api/multi-ping/', api.multi_ping_api),
     path('api/tcp/', api.tcp_api),
     path('api/http/', api.http_api),
     path('api/dns/', api.dns_api),

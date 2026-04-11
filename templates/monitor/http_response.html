@@ -4,87 +4,76 @@
 
 {% block extra_style %}
 <style>
-    .neon-card {
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        background: rgba(15, 23, 42, 0.7);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(103, 232, 249, 0.2);
+    .http-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);   /* 强制一行四个，横向排列 */
+        gap: 16px;
     }
-    .neon-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 0 30px rgba(103, 232, 249, 0.5);
-        border-color: rgba(103, 232, 249, 0.6);
+    .http-card {
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid rgba(103, 232, 249, 0.3);
+        border-radius: 20px;
+        padding: 20px 18px;
+        transition: all 0.3s ease;
+        min-height: 195px;           /* 调矮一点，更合适比例 */
+        display: flex;
+        flex-direction: column;
     }
-    .glow-text {
-        text-shadow: 0 0 15px currentColor;
+    .http-card:hover {
+        border-color: #67e8f9;
+        transform: translateY(-5px);
+        box-shadow: 0 0 30px -8px #67e8f9;
     }
-    .status-dot {
-        animation: pulse 2s infinite;
+    .response-time {
+        font-size: 2.55rem;          /* 大数字比例更协调 */
+        font-weight: 700;
+        line-height: 1;
+        margin-top: auto;
     }
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.4; }
+    .chart-container {
+        height: 390px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-zinc-950 text-white p-6">
-    <div class="max-w-7xl mx-auto">
-        <!-- 标题栏 -->
-        <div class="flex justify-between items-end mb-10">
-            <div>
-                <h1 class="text-4xl font-bold flex items-center gap-4">
-                    <span class="text-cyan-400">🌐</span>
-                    HTTP 响应时间监控
-                </h1>
-                <p class="text-zinc-400 mt-2 text-lg">实时监测主流网站 · 每分钟自动更新 · Neon 赛博风格</p>
-            </div>
+<div class="p-6 max-w-screen-2xl mx-auto">
+
+    <!-- 标题栏 -->
+    <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-4">
+            <span class="text-5xl">🌐</span>
+            <h1 class="text-4xl font-bold text-cyan-300" style="text-shadow: 0 0 20px #67e8f9;">
+                HTTP 响应时间监控
+            </h1>
+        </div>
+        <div>
             <button onclick="refreshData()"
-                    class="px-8 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl font-medium flex items-center gap-3 hover:brightness-110 transition">
-                <span>🔄</span> 立即刷新
+                    class="bg-cyan-500 hover:bg-cyan-400 text-black px-7 py-3.5 rounded-3xl text-sm font-medium flex items-center gap-2">
+                🔄 立即刷新
             </button>
-        </div>
-
-        <!-- 状态概览 -->
-        <div class="grid grid-cols-3 gap-6 mb-10" id="status-overview">
-            <!-- JS 动态填充 -->
-        </div>
-
-        <!-- 响应时间卡片 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12" id="http-cards">
-            <!-- JS 动态生成卡片 -->
-        </div>
-
-        <!-- 趋势图 -->
-        <div class="bg-zinc-900/80 backdrop-blur-xl rounded-3xl p-8 border border-zinc-800">
-            <div class="flex justify-between items-center mb-8">
-                <h2 class="text-2xl font-semibold flex items-center gap-3">
-                    📈 响应时间趋势（最近 20 次）
-                </h2>
-                <div class="text-sm text-zinc-400" id="last-update">最后更新: —</div>
-            </div>
-            <div class="h-96">
-                <canvas id="httpTrendChart"></canvas>
-            </div>
-        </div>
-
-        <!-- 参考阈值 -->
-        <div class="mt-8 flex gap-8 text-sm">
-            <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-green-500 rounded-full"></div>
-                <span class="text-green-400">≤ 200ms → 优秀</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-yellow-500 rounded-full"></div>
-                <span class="text-yellow-400">200~500ms → 需关注</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-red-500 rounded-full"></div>
-                <span class="text-red-400">> 500ms → 较差</span>
+            <div id="last-update" class="text-cyan-400 font-mono text-sm mt-3 text-right">
+                最后更新: —
             </div>
         </div>
     </div>
+
+    <!-- 四个指标横向一排（比例优化后） -->
+    <div class="http-grid" id="http-cards">
+        <!-- JS 动态生成 -->
+    </div>
+
+    <!-- 趋势图 -->
+    <div class="mt-12 bg-zinc-950 border border-cyan-400/30 rounded-3xl p-6">
+        <div class="flex justify-between mb-4">
+            <h2 class="text-2xl font-semibold text-white">📈 响应时间趋势（最近 20 次）</h2>
+            <div id="chart-time" class="text-cyan-400 font-mono text-sm"></div>
+        </div>
+        <div class="chart-container">
+            <canvas id="httpTrendChart"></canvas>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
@@ -93,147 +82,92 @@
 <script>
 let httpChart = null;
 
-const HTTP_TARGETS = [
-    {name: 'Google', url: 'https://www.google.com'},
-    {name: 'Baidu', url: 'https://www.baidu.com'},
-    {name: 'Cloudflare', url: 'https://www.cloudflare.com'},
-    {name: 'GitHub', url: 'https://github.com'}
-];
-
 function getStatusColor(ms) {
-    if (ms <= 200) return {color: 'text-green-400', label: '优秀', dot: 'bg-green-500'};
-    if (ms <= 500) return {color: 'text-yellow-400', label: '需关注', dot: 'bg-yellow-500'};
-    return {color: 'text-red-400', label: '较差', dot: 'bg-red-500'};
+    if (ms > 800) return '#f87171';
+    if (ms > 400) return '#fbbf24';
+    return '#34d399';
 }
 
-async function loadHttpData() {
+function renderCards(results) {
+    const container = document.getElementById('http-cards');
+    container.innerHTML = '';
+
+    const icons = ['🇺🇸', '🇨🇳', '☁️', '🐙'];
+    const names = ['Google', 'Baidu', 'Cloudflare', 'GitHub'];
+
+    results.forEach((item, i) => {
+        const ms = item.response_time || 0;
+        const color = getStatusColor(ms);
+
+        const cardHTML = `
+        <div class="http-card">
+            <div class="flex justify-between items-start">
+                <div class="text-4xl">${icons[i]}</div>
+                <div style="color:${color}" class="text-xs font-bold px-4 py-1 border border-current rounded-2xl">
+                    ${ms > 500 ? '较差' : ms > 200 ? '需关注' : '优秀'}
+                </div>
+            </div>
+
+            <div class="mt-6 text-white font-semibold text-lg">${names[i]}</div>
+
+            <div style="color:${color}" class="response-time">
+                ${ms.toFixed(1)} <span class="text-2xl ml-1">ms</span>
+            </div>
+
+            <div class="text-xs text-cyan-400 font-mono mt-3">${item.timestamp || '—'}</div>
+        </div>`;
+
+        container.innerHTML += cardHTML;
+    });
+}
+
+function renderChart(history) {
+    const ctx = document.getElementById('httpTrendChart');
+    if (httpChart) httpChart.destroy();
+
+    const datasets = history.datasets.map(ds => ({
+        ...ds,
+        data: ds.data.map(v => v === 0 ? null : v),
+        borderWidth: 3.5,
+        tension: 0.4,
+        pointRadius: 2,
+        fill: true,
+        backgroundColor: ds.borderColor + '20'
+    }));
+
+    httpChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: history.labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { color: '#67e8f9' } } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+            }
+        }
+    });
+}
+
+async function refreshData() {
     try {
         const res = await fetch('/monitor/api/multi-http/');
         const json = await res.json();
-        if (json.code !== 0) throw new Error(json.msg);
+        if (json.code !== 0) return;
 
-        const data = json.data;
-        const now = new Date().toLocaleTimeString('zh-CN', {hour12: false});
+        renderCards(json.data.results);
+        renderChart(json.data.history);
 
-        // 状态概览
-        let excellent = 0, warning = 0, poor = 0;
-        data.results.forEach(item => {
-            if (item.response_time <= 200) excellent++;
-            else if (item.response_time <= 500) warning++;
-            else poor++;
-        });
-
-        document.getElementById('status-overview').innerHTML = `
-            <div class="bg-gradient-to-br from-green-900/30 to-transparent border border-green-500/30 rounded-3xl p-6">
-                <div class="text-green-400 text-sm">优秀</div>
-                <div class="text-6xl font-bold text-green-400 mt-2">${excellent}</div>
-                <div class="text-zinc-400 text-sm mt-1">响应 ≤ 200ms</div>
-            </div>
-            <div class="bg-gradient-to-br from-yellow-900/30 to-transparent border border-yellow-500/30 rounded-3xl p-6">
-                <div class="text-yellow-400 text-sm">需关注</div>
-                <div class="text-6xl font-bold text-yellow-400 mt-2">${warning}</div>
-                <div class="text-zinc-400 text-sm mt-1">200~500ms</div>
-            </div>
-            <div class="bg-gradient-to-br from-red-900/30 to-transparent border border-red-500/30 rounded-3xl p-6">
-                <div class="text-red-400 text-sm">较差</div>
-                <div class="text-6xl font-bold text-red-400 mt-2">${poor}</div>
-                <div class="text-zinc-400 text-sm mt-1">> 500ms</div>
-            </div>
-        `;
-
-        // 渲染卡片（更炫酷）
-        let cardsHTML = '';
-        data.results.forEach((item, index) => {
-            const status = getStatusColor(item.response_time);
-            cardsHTML += `
-                <div class="neon-card rounded-3xl p-8 group">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <div class="flex items-center gap-3">
-                                <span class="text-4xl">🌐</span>
-                                <div>
-                                    <div class="font-bold text-2xl">${item.target}</div>
-                                    <div class="text-xs text-zinc-500 truncate max-w-[180px]">${item.url}</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="${status.dot} w-4 h-4 rounded-full status-dot"></div>
-                    </div>
-
-                    <div class="mt-10">
-                        <div class="text-7xl font-mono font-bold tracking-tighter ${status.color} glow-text">
-                            ${item.response_time}
-                            <span class="text-3xl">ms</span>
-                        </div>
-                        <div class="text-sm ${status.color} mt-2 font-medium">${status.label}</div>
-                    </div>
-
-                    <div class="mt-8 text-xs text-zinc-500">
-                        最后更新 ${item.timestamp}
-                    </div>
-                </div>
-            `;
-        });
-        document.getElementById('http-cards').innerHTML = cardsHTML;
-
-        // 更新趋势图
-        const ctx = document.getElementById('httpTrendChart');
-        if (httpChart) httpChart.destroy();
-
-        httpChart = new Chart(ctx, {
-            type: 'line',
-            data: data.history,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: { color: '#ddd', padding: 20, usePointStyle: true, font: { size: 13 } }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(15,23,42,0.95)',
-                        titleColor: '#67e8f9',
-                        bodyColor: '#e2e8f0',
-                        borderColor: '#334155',
-                        borderWidth: 1
-                    }
-                },
-                scales: {
-                    y: {
-                        grid: { color: '#27272a' },
-                        ticks: { color: '#71717a', callback: v => v + 'ms' }
-                    },
-                    x: {
-                        grid: { color: '#27272a' },
-                        ticks: { color: '#71717a' }
-                    }
-                },
-                elements: {
-                    line: { tension: 0.4 },
-                    point: { radius: 3, hoverRadius: 6 }
-                },
-                interaction: { intersect: false, mode: 'index' }
-            }
-        });
-
-        document.getElementById('last-update').textContent = `最后更新: ${now}`;
-
-    } catch (err) {
-        console.error(err);
-        alert('数据加载失败，请检查后端任务是否正常运行');
-    }
+        const now = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+        document.getElementById('last-update').innerHTML = `最后更新: <span class="text-emerald-400">${now}</span>`;
+        document.getElementById('chart-time').textContent = `更新于 ${now}`;
+    } catch(e) {}
 }
 
-function refreshData() {
-    loadHttpData();
-}
-
-// 页面加载 & 自动刷新
 window.onload = () => {
-    loadHttpData();
-    setInterval(loadHttpData, 60000);   // 每60秒自动刷新
+    refreshData();
+    setInterval(refreshData, 25000);
 };
 </script>
 {% endblock %}

@@ -1,4 +1,6 @@
 from django.http import JsonResponse
+from django.utils import timezone
+from monitor.models import MonitorResult,MonitorTarget
 from .monitoring import (
     ping_host,
     tcp_check,
@@ -58,13 +60,18 @@ TARGETS = [
 ]
 
 def multi_ping_api(request):
-    """返回4个目标的最新监测结果"""
+    """返回4个目标的最新状态 + 每个目标最近20条历史数据（用于趋势图）"""
     try:
         results = []
-        latency_data = []
+        history_data = {
+            'labels': [],
+            'datasets': []
+        }
 
-        for target in TARGETS:
-            # 查询该目标最新的 MonitorResult 记录
+        colors = ['#22d3ee', '#a855f7', '#f472b6', '#fb923c']
+
+        for idx, target in enumerate(TARGETS):
+            # 1. 获取最新一条记录（用于卡片）
             latest = MonitorResult.objects.filter(
                 target__address=target['address']
             ).order_by('-timestamp').first()
@@ -80,17 +87,43 @@ def multi_ping_api(request):
 
             results.append({
                 'target': target['name'],
-                'ping_time': ping_time,
-                'packet_loss': packet_loss,
+                'ping_time': round(ping_time, 1),
+                'packet_loss': round(packet_loss, 1),
                 'timestamp': timestamp
             })
-            latency_data.append(round(ping_time, 1))
+
+            # 2. 获取最近20条历史记录（用于折线图）
+            history = MonitorResult.objects.filter(
+                target__address=target['address']
+            ).order_by('-timestamp')[:20]
+
+            # 时间标签（倒序转正序）
+            time_labels = [h.timestamp.strftime('%H:%M') for h in reversed(history)]
+            latency_values = [h.ping_time or 0 for h in reversed(history)]
+
+            # 如果不足20条，用0补齐
+            while len(time_labels) < 20:
+                time_labels.insert(0, f"历史-{20-len(time_labels)}")
+                latency_values.insert(0, 0)
+
+            history_data['datasets'].append({
+                'label': target['name'],
+                'data': latency_values,
+                'borderColor': colors[idx],
+                'backgroundColor': 'transparent',
+                'borderWidth': 3,
+                'tension': 0.4,
+                'pointRadius': 2,
+                'pointHoverRadius': 5
+            })
+
+        # 统一的时间标签（取第一个目标的标签作为X轴）
+        history_data['labels'] = time_labels if time_labels else [f"第{i}次" for i in range(20)]
 
         return success({
             'targets': [t['name'] for t in TARGETS],
-            'labels': [t['name'] for t in TARGETS],
-            'latency_data': latency_data,
-            'results': results
+            'results': results,           # 用于卡片显示
+            'history': history_data       # 用于趋势图
         })
 
     except Exception as e:

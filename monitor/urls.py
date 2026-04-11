@@ -5,7 +5,7 @@ from . import views
 urlpatterns = [
     # 页面
     path('ping/', views.ping),
-
+    path('loss/', views.loss, name='loss'),
     # API
     path('api/ping/', api.ping_api),
     path('api/multi-ping/', api.multi_ping_api),

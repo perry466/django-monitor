@@ -3,140 +3,231 @@
 {% block title %}多目标 Ping 延迟监控 - NEON MONITOR{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-6 py-6">
-    <!-- 标题栏 -->
-    <div class="flex justify-between items-start mb-8">
-        <div>
-            <h1 class="text-3xl font-bold neon-text">多目标 Ping 延迟监控</h1>
-            <p class="text-gray-400 text-sm mt-1">最近 20 次采样趋势对比</p>
+<div class="min-h-screen bg-zinc-950 text-white pb-12">
+
+    <!-- 顶部标题栏 -->
+    <div class="sticky top-0 z-50 h-16 border-b border-zinc-800 bg-zinc-900/95 backdrop-blur-md px-8 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="w-9 h-9 bg-gradient-to-br from-cyan-400 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-cyan-500/30">
+                📡
+            </div>
+            <div>
+                <h1 class="text-2xl font-semibold tracking-tight">多目标 Ping 延迟监控</h1>
+                <p class="text-xs text-zinc-400 -mt-0.5">实时监测四条骨干线路 • 每分钟自动更新</p>
+            </div>
         </div>
 
         <button id="refresh-btn"
-                class="neon-button flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-medium">
-            <span id="refresh-text">🔄 刷新</span>
-            <span id="refresh-spinner" class="hidden animate-spin">⟳</span>
+                class="flex items-center gap-2 px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-cyan-400 rounded-2xl text-sm font-medium transition-all active:scale-95">
+            <span class="text-lg">🔄</span>
+            <span>刷新数据</span>
         </button>
     </div>
 
-    <!-- 紧凑四卡片 - 强制一行4个 -->
-    <div id="target-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        <!-- 动态生成 -->
-    </div>
+    <div class="p-8 max-w-screen-2xl mx-auto">
 
-    <!-- 图表区域 -->
-    <div class="bg-zinc-900/70 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
-        <h2 class="text-xl font-semibold mb-5 text-white flex items-center gap-2">
-            📈 延迟趋势（最近20次）
-        </h2>
-        <div class="h-[460px]">
-            <canvas id="pingTrendChart"></canvas>
+        <!-- 四张紧凑卡片 -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <!-- 卡片1 -->
+            <div id="card-1" class="bg-zinc-900/90 border border-zinc-800 hover:border-cyan-400/50 rounded-3xl p-5 transition-all group">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">🌐</span>
+                        <div>
+                            <div class="font-mono text-lg font-semibold">8.8.8.8</div>
+                            <div class="text-xs text-zinc-500">Google DNS</div>
+                        </div>
+                    </div>
+                    <div id="status-dot-1" class="w-4 h-4 mt-1 rounded-full bg-emerald-500 ring-4 ring-emerald-500/30"></div>
+                </div>
+                <div class="mt-6 flex items-baseline gap-1">
+                    <span id="ping-1" class="text-4xl font-semibold tabular-nums">—</span>
+                    <span class="text-zinc-400 text-lg">ms</span>
+                </div>
+                <div class="mt-5 flex justify-between text-sm">
+                    <span class="text-zinc-400">丢包率</span>
+                    <span id="loss-1" class="font-mono text-emerald-400">0.0%</span>
+                </div>
+            </div>
+
+            <!-- 卡片2 -->
+            <div id="card-2" class="bg-zinc-900/90 border border-zinc-800 hover:border-purple-400/50 rounded-3xl p-5 transition-all group">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">🌐</span>
+                        <div>
+                            <div class="font-mono text-lg font-semibold">1.1.1.1</div>
+                            <div class="text-xs text-zinc-500">Cloudflare DNS</div>
+                        </div>
+                    </div>
+                    <div id="status-dot-2" class="w-4 h-4 mt-1 rounded-full bg-emerald-500 ring-4 ring-emerald-500/30"></div>
+                </div>
+                <div class="mt-6 flex items-baseline gap-1">
+                    <span id="ping-2" class="text-4xl font-semibold tabular-nums">—</span>
+                    <span class="text-zinc-400 text-lg">ms</span>
+                </div>
+                <div class="mt-5 flex justify-between text-sm">
+                    <span class="text-zinc-400">丢包率</span>
+                    <span id="loss-2" class="font-mono text-emerald-400">0.0%</span>
+                </div>
+            </div>
+
+            <!-- 卡片3 -->
+            <div id="card-3" class="bg-zinc-900/90 border border-zinc-800 hover:border-pink-400/50 rounded-3xl p-5 transition-all group">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">🌐</span>
+                        <div>
+                            <div class="font-mono text-lg font-semibold">baidu.com</div>
+                            <div class="text-xs text-zinc-500">百度</div>
+                        </div>
+                    </div>
+                    <div id="status-dot-3" class="w-4 h-4 mt-1 rounded-full bg-emerald-500 ring-4 ring-emerald-500/30"></div>
+                </div>
+                <div class="mt-6 flex items-baseline gap-1">
+                    <span id="ping-3" class="text-4xl font-semibold tabular-nums">—</span>
+                    <span class="text-zinc-400 text-lg">ms</span>
+                </div>
+                <div class="mt-5 flex justify-between text-sm">
+                    <span class="text-zinc-400">丢包率</span>
+                    <span id="loss-3" class="font-mono text-emerald-400">0.0%</span>
+                </div>
+            </div>
+
+            <!-- 卡片4 -->
+            <div id="card-4" class="bg-zinc-900/90 border border-zinc-800 hover:border-orange-400/50 rounded-3xl p-5 transition-all group">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">🌐</span>
+                        <div>
+                            <div class="font-mono text-lg font-semibold">114.114.114.114</div>
+                            <div class="text-xs text-zinc-500">中国公共DNS</div>
+                        </div>
+                    </div>
+                    <div id="status-dot-4" class="w-4 h-4 mt-1 rounded-full bg-emerald-500 ring-4 ring-emerald-500/30"></div>
+                </div>
+                <div class="mt-6 flex items-baseline gap-1">
+                    <span id="ping-4" class="text-4xl font-semibold tabular-nums">—</span>
+                    <span class="text-zinc-400 text-lg">ms</span>
+                </div>
+                <div class="mt-5 flex justify-between text-sm">
+                    <span class="text-zinc-400">丢包率</span>
+                    <span id="loss-4" class="font-mono text-emerald-400">0.0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图表区域（加大高度 + 只用浏览器一个滚动条） -->
+        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-7">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <span class="text-cyan-400">📈</span>
+                    <h2 class="text-xl font-semibold">延迟趋势（最近 20 次采样）</h2>
+                </div>
+                <div id="last-update" class="text-xs text-zinc-500 font-mono">最后更新: —</div>
+            </div>
+
+            <!-- 图表容器 - 固定高度让折线完整显示 -->
+            <div class="relative" style="height: 580px;">
+                <canvas id="latencyChart" class="w-full h-full"></canvas>
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_script %}
+<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
 <script>
-// ==================== 变量 ====================
-let pingChart = null;
-let currentType = 'line';
+// Chart.js 初始化
+let latencyChart = null;
+const targetInfo = [
+    { name: "8.8.8.8",     color: "#22d3ee" },
+    { name: "1.1.1.1",     color: "#a855f7" },
+    { name: "baidu.com",   color: "#f472b6" },
+    { name: "114.114.114.114", color: "#fb923c" }
+];
 
-// ==================== 渲染更小卡片 ====================
-function renderCards(results) {
-    const container = document.getElementById('target-cards');
-    container.innerHTML = '';
-
-    results.forEach(item => {
-        const isUp = item.ping_time > 0 && item.packet_loss < 10;
-        const html = `
-            <div class="neon-card">
-                <div class="text-sm font-medium text-white mb-1 truncate">${item.target}</div>
-                <div class="text-3xl font-bold text-white">${item.ping_time}<span class="text-cyan-400 text-lg ml-1">ms</span></div>
-                <div class="text-xs text-gray-400 mt-1">丢包 ${item.packet_loss}%</div>
-                <div class="flex justify-between items-center mt-3 text-xs">
-                    <span class="${isUp ? 'text-emerald-400' : 'text-red-400'}">
-                        ${isUp ? '● 在线' : '● 异常'}
-                    </span>
-                    <span class="text-gray-500">${item.timestamp}</span>
-                </div>
-            </div>`;
-        container.innerHTML += html;
-    });
-}
-
-// ==================== 图表 ====================
-function initTrendChart(history) {
-    const ctx = document.getElementById('pingTrendChart');
-    if (pingChart) pingChart.destroy();
-
-    pingChart = new Chart(ctx, {
-        type: currentType,
-        data: { labels: history.labels, datasets: history.datasets },
+function initChart() {
+    const ctx = document.getElementById('latencyChart');
+    latencyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Array(20).fill(''),
+            datasets: targetInfo.map(t => ({
+                label: t.name,
+                data: Array(20).fill(0),
+                borderColor: t.color,
+                backgroundColor: 'transparent',
+                borderWidth: 3.5,
+                tension: 0.4,
+                pointRadius: 2,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#18181b'
+            }))
+        },
         options: {
-            responsive: true,
             maintainAspectRatio: false,
+            responsive: true,
+            interaction: { intersect: false, mode: 'index' },
             plugins: {
-                legend: { position: 'top', labels: { color: '#ddd', font: {size: 12} }}
+                legend: { position: 'top', align: 'start', labels: { color: '#d1d5db', usePointStyle: true, padding: 20, font: { size: 13 } } },
+                tooltip: { backgroundColor: '#27272a', borderColor: '#52525b', padding: 12 }
             },
             scales: {
-                x: { grid: {color: '#ffffff08'}, ticks: {color: '#aaa'} },
-                y: { grid: {color: '#ffffff08'}, ticks: {color: '#aaa'} }
+                x: { grid: { color: '#3f3f46' }, ticks: { color: '#71717a', font: { size: 11 } } },
+                y: { min: 0, max: 230, grid: { color: '#3f3f46' }, ticks: { color: '#71717a', callback: v => v + ' ms', stepSize: 40 } }
             }
         }
     });
 }
 
-async function fetchData() {
-    const btn = document.getElementById('refresh-btn');
-    btn.disabled = true;
-    document.getElementById('refresh-text').classList.add('hidden');
-    document.getElementById('refresh-spinner').classList.remove('hidden');
+function updateCards(results) {
+    results.forEach((item, i) => {
+        const idx = i + 1;
+        document.getElementById(`ping-${idx}`).textContent = (item.ping_time || 0).toFixed(1);
+        const lossEl = document.getElementById(`loss-${idx}`);
+        const loss = item.packet_loss || 0;
+        lossEl.textContent = loss.toFixed(1) + '%';
+        lossEl.className = `font-mono ${loss > 5 ? 'text-red-400' : 'text-emerald-400'}`;
+        const dot = document.getElementById(`status-dot-${idx}`);
+        dot.style.backgroundColor = (item.ping_time !== null && loss < 8) ? '#10b981' : '#ef4444';
+    });
+}
 
+function updateChart(history) {
+    if (!latencyChart) return;
+    latencyChart.data.labels = history.labels || Array(20).fill('');
+    latencyChart.data.datasets.forEach((ds, i) => ds.data = history.datasets[i] ? history.datasets[i].data : Array(20).fill(0));
+    latencyChart.update('none');
+}
+
+async function fetchData() {
     try {
         const res = await fetch('/monitor/api/multi-ping/');
         const json = await res.json();
-        if (json.code === 0) {
-            renderCards(json.data.results);
-            initTrendChart(json.data.history);
+        if (json.code === 0 && json.data) {
+            updateCards(json.data.results);
+            updateChart(json.data.history);
+            document.getElementById('last-update').textContent = `最后更新: ${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`;
         }
-    } catch(e) {
-        console.error(e);
-    } finally {
-        btn.disabled = false;
-        document.getElementById('refresh-text').classList.remove('hidden');
-        document.getElementById('refresh-spinner').classList.add('hidden');
-    }
+    } catch (e) { console.error(e); }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    initChart();
     fetchData();
-    setInterval(fetchData, 25000);
+
+    document.getElementById('refresh-btn').addEventListener('click', () => {
+        const btn = document.getElementById('refresh-btn');
+        const orig = btn.innerHTML;
+        btn.innerHTML = `<span class="animate-spin">⟳</span> 刷新中...`;
+        fetchData().finally(() => btn.innerHTML = orig);
+    });
+
+    setInterval(fetchData, 60000);
 });
 </script>
-
-<style>
-.neon-text {
-    text-shadow: 0 0 15px #67e8f9, 0 0 30px #22d3ee;
-}
-
-.neon-button {
-    background: linear-gradient(90deg, #22d3ee, #a855f7);
-    box-shadow: 0 0 20px rgba(103,232,249,0.5);
-}
-
-.neon-card {
-    background: rgba(15,23,42,0.95);
-    border: 1px solid rgba(103,232,249,0.25);
-    border-radius: 16px;
-    padding: 14px 16px;
-    height: 138px;
-    transition: all 0.3s;
-}
-
-.neon-card:hover {
-    border-color: #67e8f9;
-    transform: translateY(-3px);
-}
-</style>
 {% endblock %}

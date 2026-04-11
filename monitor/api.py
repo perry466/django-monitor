@@ -256,3 +256,71 @@ def full_check_api(request):
 def system_api(request):
     data = system_info()
     return success(data)
+
+# =====================
+# 7. 多目标网络抖动 API
+# =====================
+JITTER_TARGETS = [
+    {'name': '8.8.8.8', 'address': '8.8.8.8'},
+    {'name': '1.1.1.1', 'address': '1.1.1.1'},
+    {'name': 'baidu.com', 'address': 'baidu.com'},
+    {'name': '114.114.114.114', 'address': '114.114.114.114'},
+]
+
+def multi_jitter_api(request):
+    """返回4个目标的最新抖动数据 + 最近20条历史趋势"""
+    try:
+        results = []
+        history_data = {'labels': [], 'datasets': []}
+        colors = ['#eab308', '#f59e0b', '#fb923c', '#f97316']   # 醒目的黄色/橙色系
+
+        for idx, target in enumerate(JITTER_TARGETS):
+            latest = MonitorResult.objects.filter(
+                target__address=target['address']
+            ).order_by('-timestamp').first()
+
+            jitter = round(latest.network_jitter, 2) if latest and latest.network_jitter is not None else 0.0
+            ping_time = round(latest.ping_time, 1) if latest and latest.ping_time is not None else 0
+
+            results.append({
+                'target': target['name'],
+                'jitter': jitter,
+                'avg_latency': ping_time,
+                'timestamp': latest.timestamp.strftime('%H:%M:%S') if latest else '无数据'
+            })
+
+            # 历史数据（最近20条）
+            history = MonitorResult.objects.filter(
+                target__address=target['address']
+            ).order_by('-timestamp')[:20]
+
+            time_labels = [h.timestamp.strftime('%H:%M') for h in reversed(history)]
+            jitter_values = [round(h.network_jitter or 0, 2) for h in reversed(history)]
+
+            while len(time_labels) < 20:
+                time_labels.insert(0, f"历史-{20-len(time_labels)}")
+                jitter_values.insert(0, 0)
+
+            history_data['datasets'].append({
+                'label': target['name'],
+                'data': jitter_values,
+                'borderColor': colors[idx],
+                'backgroundColor': 'rgba(234, 179, 8, 0.08)',
+                'borderWidth': 3.5,
+                'tension': 0.35,
+                'pointRadius': 2.5,
+                'pointHoverRadius': 6,
+            })
+
+        history_data['labels'] = time_labels if time_labels else [f"第{i}次" for i in range(20)]
+
+        return success({
+            'targets': [t['name'] for t in JITTER_TARGETS],
+            'results': results,
+            'history': history_data
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return error(f'获取网络抖动数据失败: {str(e)}')

@@ -10,3 +10,6 @@ def loss(request):
 
 def http_response(request):
     return render(request, 'monitor/http_response.html')
+
+def jitter(request):
+    return render(request, 'monitor/jitter.html')

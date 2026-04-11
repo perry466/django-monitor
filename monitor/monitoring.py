@@ -5,6 +5,7 @@ import requests
 import platform
 import psutil
 import time
+import statistics
 import re
 
 # =====================
@@ -146,3 +147,42 @@ def parse_ping_output(output):
         return ping_time, packet_loss
     except Exception:
         return None, 0.0
+
+
+# =====================
+# 网络抖动
+# =====================
+
+def measure_jitter(target, count=10):
+    """通过多次 ping 计算抖动（推荐方式）"""
+    try:
+        param = '-n' if platform.system().lower() == 'windows' else '-c'
+        output = subprocess.check_output(
+            ['ping', param, str(count), target],
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+            timeout=10
+        )
+
+        # 提取所有 RTT 值（适配 Windows/Linux）
+        rtt_pattern = r'time[=<]\s*([\d.]+)' if platform.system().lower() != 'windows' else r'(\d+)ms'
+        rtts = [float(m.group(1)) for m in re.finditer(rtt_pattern, output)]
+
+        if len(rtts) < 2:
+            return {'jitter': 0.0, 'avg_latency': 0.0, 'min_latency': 0.0, 'max_latency': 0.0, 'raw_output': output}
+
+        avg = statistics.mean(rtts)
+        jitter_std = statistics.stdev(rtts) if len(rtts) > 1 else 0.0  # 标准差抖动（推荐）
+        jitter_range = max(rtts) - min(rtts)  # 峰值抖动（更直观）
+
+        return {
+            'jitter_std': round(jitter_std, 2),
+            'jitter_range': round(jitter_range, 2),
+            'avg_latency': round(avg, 2),
+            'min_latency': round(min(rtts), 2),
+            'max_latency': round(max(rtts), 2),
+            'packet_count': len(rtts),
+            'raw_output': output
+        }
+    except Exception as e:
+        return {'jitter_std': None, 'jitter_range': None, 'error': str(e)}

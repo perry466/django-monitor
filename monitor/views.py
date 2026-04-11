@@ -7,3 +7,6 @@ def ping(request):
 
 def loss(request):
     return render(request, 'monitor/loss.html')
+
+def http_response(request):
+    return render(request, 'monitor/http_response.html')

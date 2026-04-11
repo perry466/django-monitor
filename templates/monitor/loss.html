@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}丢包率测试 - NEON MONITOR{% endblock %}
+
+{% block extra_style %}
+<style>
+    .loss-page {
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 20px 30px;
+    }
+
+    .page-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.8rem;
+        letter-spacing: 3px;
+        color: #00f5d4;
+        text-shadow: 0 0 30px #00f5d4;
+        margin-bottom: 8px;
+    }
+
+    .subtitle { color: #88f0e0; font-size: 1.15rem; }
+
+    .refresh-btn {
+        background: transparent;
+        border: 2px solid #00f5d4;
+        color: #00f5d4;
+        padding: 12px 32px;
+        border-radius: 50px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 0 20px rgba(0, 245, 212, 0.5);
+        transition: all 0.3s;
+    }
+    .refresh-btn:hover {
+        background: #00f5d4;
+        color: #0a0e17;
+        box-shadow: 0 0 30px rgba(0, 245, 212, 0.9);
+    }
+
+    .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 22px;
+        margin: 35px 0 50px;
+    }
+
+    .monitor-card {
+        background: rgba(15, 23, 42, 0.85);
+        border: 2px solid rgba(0, 245, 212, 0.4);
+        border-radius: 18px;
+        padding: 24px;
+        transition: all 0.3s ease;
+    }
+    .monitor-card:hover {
+        border-color: #00f5d4;
+        box-shadow: 0 0 25px rgba(0, 245, 212, 0.4);
+        transform: translateY(-4px);
+    }
+
+    .target-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+    .target-icon { font-size: 2.8rem; }
+    .target-info h3 { font-size: 1.5rem; margin: 0; color: #fff; }
+    .target-info p { color: #88f0e0; margin: 4px 0 0; font-size: 0.95rem; }
+
+    .loss-value {
+        font-size: 4.8rem;
+        font-weight: 700;
+        font-family: 'Orbitron', sans-serif;
+        line-height: 1;
+        margin: 10px 0 6px;
+    }
+
+    .bar-container {
+        margin-top: 25px;
+    }
+    .bar-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        margin-bottom: 6px;
+        color: #a0f0e8;
+    }
+    .bar {
+        height: 18px;
+        background: linear-gradient(90deg, #22c55e, #eab308);
+        border-radius: 9999px;
+        transition: width 0.8s ease, background 0.4s;
+        box-shadow: 0 0 12px currentColor;
+    }
+
+    .status {
+        margin-top: 12px;
+        padding: 6px 18px;
+        border-radius: 30px;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    .comparison-section {
+        background: rgba(15, 23, 42, 0.85);
+        border: 2px solid rgba(0, 245, 212, 0.3);
+        border-radius: 18px;
+        padding: 28px;
+        margin-top: 20px;
+    }
+    .comparison-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.65rem;
+        color: #00f5d4;
+        margin-bottom: 20px;
+    }
+
+    .note {
+        margin-top: 30px;
+        padding: 16px 20px;
+        background: rgba(249, 115, 22, 0.1);
+        border-left: 5px solid #f59e0b;
+        color: #fcd34d;
+        border-radius: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="loss-page">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px;">
+        <div>
+            <h1 class="page-title">📉 丢包率监控</h1>
+            <p class="subtitle">实时对比四条骨干线路 • 丢包率越高越需关注</p>
+        </div>
+        <button onclick="refreshLossData()" class="refresh-btn">🔄 刷新数据</button>
+    </div>
+
+    <div class="cards-grid" id="cards-grid"></div>
+
+    <!-- 对比条形图区域 -->
+    <div class="comparison-section">
+        <div class="comparison-title">📊 当前丢包率横向对比</div>
+        <div id="bar-charts"></div>
+    </div>
+
+    <div class="note">
+        <strong>参考阈值：</strong>
+        ≤ 1%（优秀） • 1%~5%（需关注） • 5%~10%（较差） • >10%（严重）
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+// 目标配置
+const TARGETS = [
+    { id: '8.8.8.8', name: '8.8.8.8', desc: 'Google DNS' },
+    { id: '1.1.1.1', name: '1.1.1.1', desc: 'Cloudflare DNS' },
+    { id: 'baidu.com', name: 'baidu.com', desc: '百度' },
+    { id: '114.114.114.114', name: '114.114.114.114', desc: '中国公共DNS' }
+];
+
+let currentData = [];
+
+// 创建卡片
+function createCards() {
+    const container = document.getElementById('cards-grid');
+    container.innerHTML = '';
+    TARGETS.forEach(t => {
+        const html = `
+            <div class="monitor-card" id="card-${t.id}">
+                <div class="target-header">
+                    <div class="target-icon">🌐</div>
+                    <div class="target-info">
+                        <h3>${t.name}</h3>
+                        <p>${t.desc}</p>
+                    </div>
+                </div>
+                <div id="loss-${t.id}" class="loss-value" style="color:#22c55e;">0.0</div>
+                <div style="color:#88f0e0; font-size:1.1rem;">丢包率 %</div>
+                <div id="status-${t.id}" class="status" style="background:rgba(34,197,94,0.2); color:#22c55e;">优秀</div>
+            </div>
+        `;
+        container.innerHTML += html;
+    });
+}
+
+// 创建横向条形图（纯CSS，高性能）
+function renderBarCharts(data) {
+    const container = document.getElementById('bar-charts');
+    container.innerHTML = '';
+
+    data.forEach(item => {
+        const loss = parseFloat(item.packet_loss) || 0;
+        let color = '#22c55e';
+        if (loss > 10) color = '#ef4444';
+        else if (loss > 5) color = '#f97316';
+        else if (loss > 2) color = '#eab308';
+
+        const percent = Math.min(loss * 3, 100); // 放大显示效果，最高100%
+
+        const html = `
+            <div style="margin-bottom: 22px;">
+                <div class="bar-label">
+                    <span>${item.target}</span>
+                    <span style="color:${color}">${loss.toFixed(1)}%</span>
+                </div>
+                <div style="background:rgba(255,255,255,0.08); border-radius:9999px; height:18px; overflow:hidden;">
+                    <div class="bar" style="width:${percent}%; background:${color};"></div>
+                </div>
+            </div>
+        `;
+        container.innerHTML += html;
+    });
+}
+
+// 更新卡片
+function updateCards(results) {
+    results.forEach(item => {
+        const loss = parseFloat(item.packet_loss) || 0;
+        const targetId = item.target;
+
+        const valueEl = document.getElementById(`loss-${targetId}`);
+        const statusEl = document.getElementById(`status-${targetId}`);
+
+        if (valueEl) {
+            valueEl.textContent = loss.toFixed(1);
+            let color = '#22c55e';
+            if (loss > 10) color = '#ef4444';
+            else if (loss > 5) color = '#f97316';
+            else if (loss > 2) color = '#eab308';
+            valueEl.style.color = color;
+        }
+
+        if (statusEl) {
+            let text = '优秀';
+            let bg = 'rgba(34,197,94,0.2)';
+            if (loss > 10) { text = '严重'; bg = 'rgba(239,68,68,0.2)'; }
+            else if (loss > 5) { text = '较差'; bg = 'rgba(249,115,22,0.2)'; }
+            else if (loss > 2) { text = '需关注'; bg = 'rgba(234,179,8,0.2)'; }
+            statusEl.textContent = text;
+            statusEl.style.background = bg;
+            statusEl.style.color = loss > 10 ? '#ef4444' : loss > 2 ? '#eab308' : '#22c55e';
+        }
+    });
+}
+
+// 刷新数据
+async function refreshLossData() {
+    try {
+        const res = await fetch('/monitor/api/multi-ping/');
+        const json = await res.json();
+
+        if (json.code !== 0) throw new Error(json.msg);
+
+        const results = json.data.results || [];
+        currentData = results;
+
+        updateCards(results);
+        renderBarCharts(results);
+
+    } catch (e) {
+        console.error(e);
+        alert("获取数据失败，请检查后端是否运行");
+    }
+}
+
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+    createCards();
+    refreshLossData();
+    setInterval(refreshLossData, 60000);   // 每分钟自动刷新
+});
+</script>
+{% endblock %}

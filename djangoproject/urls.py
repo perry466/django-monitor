@@ -24,7 +24,8 @@ def home(request):
 
 
 urlpatterns = [
-    path('', dashboard),
+    path('', dashboard,name='home'),
     path('admin/', admin.site.urls),
     path('monitor/', include('monitor.urls')),
+    path('targets/', include('targets.urls')),
 ]

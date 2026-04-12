@@ -435,3 +435,79 @@ def multi_tcp_retrans_api(request):
         import traceback
         traceback.print_exc()
         return error(f'获取TCP重传率数据失败: {str(e)}')
+
+
+# =====================
+# 8. 多目标 丢包率 API（与 Ping 共用 category:ping）
+# =====================
+def multi_loss_api(request):
+    try:
+        targets_qs = MonitorTarget.objects.filter(
+            description="category:ping", is_active=True
+        ).order_by('id')
+
+        if not targets_qs.exists():
+            defaults = [
+                {'name': '8.8.8.8', 'address': '8.8.8.8'},
+                {'name': '1.1.1.1', 'address': '1.1.1.1'},
+                {'name': 'baidu.com', 'address': 'baidu.com'},
+                {'name': '114.114.114.114', 'address': '114.114.114.114'},
+            ]
+            for d in defaults:
+                MonitorTarget.objects.update_or_create(
+                    address=d['address'],
+                    defaults={
+                        'name': d['name'],
+                        'target_type': 'ip' if d['address'][0].isdigit() else 'domain',
+                        'description': 'category:ping'
+                    }
+                )
+            targets_qs = MonitorTarget.objects.filter(description="category:ping", is_active=True).order_by('id')
+
+        targets_list = [{'name': t.name, 'address': t.address} for t in targets_qs]
+
+        results = []
+        history_data = {'labels': [], 'datasets': []}
+        colors = ['#ef4444', '#f87171', '#fb923c', '#f59e0b']   # 红色系，更直观
+
+        for idx, target in enumerate(targets_list):
+            latest = MonitorResult.objects.filter(target__address=target['address']).order_by('-timestamp').first()
+            packet_loss = round(latest.packet_loss, 1) if latest and latest.packet_loss is not None else 0.0
+            timestamp = latest.timestamp.strftime('%H:%M:%S') if latest else '无数据'
+
+            results.append({
+                'target': target['name'],
+                'packet_loss': packet_loss,
+                'timestamp': timestamp
+            })
+
+            # 历史数据（最近20次）
+            history = MonitorResult.objects.filter(target__address=target['address']).order_by('-timestamp')[:20]
+            time_labels = [h.timestamp.strftime('%H:%M') for h in reversed(history)]
+            loss_values = [round(h.packet_loss or 0, 1) for h in reversed(history)]
+            while len(time_labels) < 20:
+                time_labels.insert(0, f"历史-{20 - len(time_labels)}")
+                loss_values.insert(0, 0)
+
+            history_data['datasets'].append({
+                'label': target['name'],
+                'data': loss_values,
+                'borderColor': colors[idx % len(colors)],
+                'backgroundColor': 'rgba(239, 68, 68, 0.15)',
+                'borderWidth': 3,
+                'tension': 0.4,
+                'pointRadius': 3,
+            })
+
+        history_data['labels'] = time_labels if time_labels else [f"第{i}次" for i in range(20)]
+
+        return success({
+            'targets': [t['name'] for t in targets_list],
+            'results': results,
+            'history': history_data
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return error(f'获取多目标丢包率数据失败: {str(e)}')

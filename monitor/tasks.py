@@ -8,7 +8,8 @@ from .monitoring import (
     http_check,
     parse_ping_output,
     measure_jitter,
-    dns_resolve,  # 新增导入
+    dns_resolve,
+    get_tcp_retransmit_rate,   # 新增导入
 )
 
 import re
@@ -121,6 +122,27 @@ def multi_dns_task():
     print(f"[{timezone.now()}] 多目标 DNS 任务完成")
 
 
+def multi_tcp_retrans_task():
+    """每分钟执行 TCP 重传率采集"""
+    print(f"[{timezone.now()}] 执行 TCP 重传率采集任务...")
+
+    # 使用系统级目标（或复用现有 MonitorTarget）
+    target_obj, _ = MonitorTarget.objects.get_or_create(
+        address='system_tcp',
+        defaults={'name': 'TCP 重传率 (系统级)', 'target_type': 'ip'}
+    )
+
+    result = get_tcp_retransmit_rate()
+
+    MonitorResult.objects.create(
+        target=target_obj,
+        tcp_retransmit_rate=result['retrans_rate'],
+        status=result['status']
+    )
+
+    print(f"  → TCP 重传率: {result['retrans_rate']}%  状态: {result['status']}")
+
+
 # =====================
 # 启动调度器
 # =====================
@@ -147,5 +169,12 @@ def start_scheduler():
         replace_existing=True
     )
 
+    scheduler.add_job(
+        multi_tcp_retrans_task,
+        IntervalTrigger(minutes=1),
+        id='multi_tcp_retrans',
+        replace_existing=True
+    )
+
     scheduler.start()
-    print("✅ APScheduler 已成功启动 - Ping + Jitter + HTTP + DNS 每分钟执行一次")
+    print("✅ APScheduler 已成功启动 - Ping + Jitter + HTTP + DNS + TCP 每分钟执行一次")

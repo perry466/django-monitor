@@ -16,3 +16,6 @@ def jitter(request):
 
 def dns(request):
     return render(request, 'monitor/dns.html')
+
+def tcp_retrans(request):
+    return render(request,'monitor/tcp_retrans.html')

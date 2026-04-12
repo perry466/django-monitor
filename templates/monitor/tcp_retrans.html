@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}TCP 重传率监控 - NEON MONITOR{% endblock %}
+
+{% block content %}
+<div style="max-width: 1250px; margin: 30px auto; padding: 20px;">
+    <div class="neon-card">
+        <div class="header">
+            <span class="icon">🔄</span>
+            <h1>TCP 重传率监控</h1>
+            <p>系统级 TCP 段重传比例 • 当前网络非常稳定</p>
+        </div>
+
+        <div class="refresh-bar">
+            <button onclick="loadData()" class="neon-btn">🔄 立即刷新</button>
+            <span>最后更新: <span id="last-update">——</span></span>
+        </div>
+
+        <!-- 当前数值展示 -->
+        <div class="current-status">
+            <div class="value-group">
+                <div class="label">当前重传率</div>
+                <div id="current-rate" class="big-value">0.000</div>
+                <span class="unit">%</span>
+            </div>
+            <div id="status-badge" class="badge excellent">EXCELLENT</div>
+        </div>
+
+        <!-- 趋势图 -->
+        <div class="chart-container">
+            <h3>📈 最近 20 次重传率趋势（折线 + 面积图）</h3>
+            <div style="height: 460px; position: relative;">
+                <canvas id="tcpRetransChart"></canvas>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>当前情况：</strong> 重传率持续为 0.0%，说明网络链路稳定、无明显丢包。<br>
+            当网络出现波动时，重传率会上升，面积填充会明显变大。
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+let tcpChart = null;
+
+function loadData() {
+    fetch('/monitor/api/multi-tcp-retrans/')
+        .then(r => r.json())
+        .then(res => {
+            if (res.code !== 0) return;
+
+            const d = res.data;
+
+            // 更新顶部数值
+            document.getElementById('current-rate').textContent = d.current_rate.toFixed(3);
+            document.getElementById('last-update').textContent = d.timestamp || '刚刚';
+
+            // 更新状态徽章
+            const badge = document.getElementById('status-badge');
+            badge.textContent = (d.status || 'excellent').toUpperCase();
+            badge.className = `badge ${d.status || 'excellent'}`;
+
+            // 准备图表数据
+            const ctx = document.getElementById('tcpRetransChart');
+            if (tcpChart) tcpChart.destroy();
+
+            tcpChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: d.history.labels,
+                    datasets: [
+                        {
+                            label: 'TCP 重传率 (%)',
+                            data: d.history.datasets[0].data,
+                            borderColor: '#f87171',
+                            backgroundColor: 'rgba(248, 113, 113, 0.22)',   // 面积填充
+                            borderWidth: 4,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 3,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: '1% 警示线',
+                            data: Array(d.history.labels.length).fill(1),
+                            borderColor: '#ef4444',
+                            borderWidth: 2,
+                            borderDash: [8, 3],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 2.5,                    // 固定范围，让0也有明显显示
+                            grid: { color: '#334155' },
+                            ticks: { color: '#94a3b8', stepSize: 0.5 }
+                        },
+                        x: {
+                            grid: { color: '#334155' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: { color: '#e2e8f0', padding: 15 }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(err => console.error(err));
+}
+
+// 页面加载自动刷新 + 每分钟自动更新
+window.onload = loadData;
+setInterval(loadData, 60000);
+</script>
+
+<style>
+.neon-card {
+    background: #0f172a;
+    border: 1px solid #6366f1;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 0 35px rgba(99, 102, 241, 0.45);
+    color: #e2e8f0;
+}
+.big-value {
+    font-size: 5.5rem;
+    font-weight: 700;
+    color: #22c55e;
+    line-height: 1;
+}
+.unit { font-size: 2.2rem; color: #94a3b8; }
+.badge {
+    padding: 16px 38px;
+    border-radius: 9999px;
+    font-size: 1.4rem;
+    font-weight: bold;
+}
+.excellent { background: #22c55e; color: black; }
+.warning { background: #eab308; color: black; }
+.critical { background: #ef4444; color: white; }
+.chart-container { margin-top: 40px; }
+.info-box { margin-top: 30px; color: #94a3b8; line-height: 1.6; }
+</style>
+{% endblock %}

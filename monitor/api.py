@@ -379,3 +379,49 @@ def multi_jitter_api(request):
         import traceback
         traceback.print_exc()
         return error(f'获取网络抖动数据失败: {str(e)}')
+
+
+# 多目标 TCP 重传率 API（这里用系统级 + 历史趋势）
+def multi_tcp_retrans_api(request):
+    try:
+        # 最新记录
+        latest = MonitorResult.objects.filter(
+            tcp_retransmit_rate__isnull=False
+        ).order_by('-timestamp').first()
+
+        current_rate = round(latest.tcp_retransmit_rate, 3) if latest else 0.0
+
+        # 最近20条历史（柱状图更适合展示百分比波动）
+        history = MonitorResult.objects.filter(
+            tcp_retransmit_rate__isnull=False
+        ).order_by('-timestamp')[:20]
+
+        time_labels = [h.timestamp.strftime('%H:%M') for h in reversed(history)]
+        rate_values = [round(h.tcp_retransmit_rate or 0, 3) for h in reversed(history)]
+
+        # 补齐20条
+        while len(time_labels) < 20:
+            time_labels.insert(0, f"历史-{20 - len(time_labels)}")
+            rate_values.insert(0, 0)
+
+        return success({
+            'current_rate': current_rate,
+            'status': latest.status if latest else 'unknown',
+            'timestamp': latest.timestamp.strftime('%H:%M:%S') if latest else '无数据',
+            'history': {
+                'labels': time_labels,
+                'datasets': [{
+                    'label': 'TCP 重传率 (%)',
+                    'data': rate_values,
+                    'backgroundColor': '#ef4444',  # 醒目的红色（强调问题指标）
+                    'borderColor': '#f87171',
+                    'borderWidth': 2,
+                    'borderRadius': 6,
+                    'barThickness': 12,
+                }]
+            }
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return error(f'获取TCP重传率数据失败: {str(e)}')

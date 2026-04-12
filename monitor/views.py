@@ -13,3 +13,6 @@ def http_response(request):
 
 def jitter(request):
     return render(request, 'monitor/jitter.html')
+
+def dns(request):
+    return render(request, 'monitor/dns.html')

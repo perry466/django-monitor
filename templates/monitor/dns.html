@@ -1,10 +1,193 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}DNS 解析时间监控 - NEON MONITOR{% endblock %}
+
+{% block extra_style %}
+<style>
+    .dns-card {
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid rgba(103, 232, 249, 0.3);
+        border-radius: 16px;
+        padding: 24px;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .chart-container {
+        height: 360px;
+        position: relative;
+    }
+    .loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #67e8f9;
+        font-size: 1.1rem;
+    }
+    .error-msg {
+        color: #f87171;
+        text-align: center;
+        padding: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-4xl font-bold text-cyan-400 flex items-center gap-3">
+                🔍 DNS 解析时间监控
+            </h1>
+            <p class="text-slate-400 mt-2">实时对比全球主流 DNS 解析速度 • 水平条形图最直观</p>
+        </div>
+        <button onclick="refreshDNS()"
+                class="px-8 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 rounded-2xl font-semibold flex items-center gap-3 transition-all active:scale-95">
+            🔄 立即刷新
+        </button>
+    </div>
+
+    <!-- 当前最新对比 - 水平条形图（最推荐） -->
+    <div class="dns-card mb-10">
+        <h2 class="text-2xl font-semibold mb-6 text-white flex items-center gap-2">
+            📊 当前解析时间横向对比（越短越好）
+        </h2>
+        <div class="chart-container" id="barContainer">
+            <div id="barLoading" class="loading">加载中...</div>
+            <canvas id="dnsBarChart"></canvas>
+        </div>
+    </div>
+
+    <!-- 历史趋势 - 分组柱状图 -->
+    <div class="dns-card">
+        <h2 class="text-2xl font-semibold mb-6 text-white flex items-center gap-2">
+            📈 最近 20 次解析时间分布趋势
+        </h2>
+        <div class="chart-container" id="historyContainer">
+            <div id="historyLoading" class="loading">加载中...</div>
+            <canvas id="dnsHistoryChart"></canvas>
+        </div>
+        <p class="text-xs text-slate-500 mt-6 text-center">
+            绿色/青色区域表示快速解析（<50ms 为优秀）• 柱子越高表示该次解析越慢
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+let dnsBarChart = null;
+let dnsHistoryChart = null;
+
+async function loadDNSData() {
+    const barLoading = document.getElementById('barLoading');
+    const historyLoading = document.getElementById('historyLoading');
+
+    if (barLoading) barLoading.style.display = 'block';
+    if (historyLoading) historyLoading.style.display = 'block';
+
+    try {
+        const res = await fetch('/monitor/api/multi-dns/');
+        if (!res.ok) throw new Error('网络请求失败');
+
+        const json = await res.json();
+        if (json.code !== 0) throw new Error(json.msg || 'API 返回错误');
+
+        const data = json.data;
+
+        // ==================== 水平条形图（当前最新值） ====================
+        const barCtx = document.getElementById('dnsBarChart');
+        if (dnsBarChart) dnsBarChart.destroy();
+
+        dnsBarChart = new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: data.results.map(r => r.target),
+                datasets: [{
+                    label: 'DNS 解析时间 (ms)',
+                    data: data.results.map(r => r.resolve_time),
+                    backgroundColor: ['#22d3ee', '#a855f7', '#f472b6', '#fb923c', '#eab308'],
+                    borderColor: '#ffffff33',
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    barThickness: 32,
+                }]
+            },
+            options: {
+                indexAxis: 'y',           // 关键：水平条形
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1e2937',
+                        titleColor: '#67e8f9',
+                        bodyColor: '#e2e8f0',
+                        padding: 12
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8', font: { size: 13 } }
+                    },
+                    y: {
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8', font: { size: 13 } }
+                    }
+                }
+            }
+        });
+
+        // ==================== 分组柱状图（历史趋势） ====================
+        const historyCtx = document.getElementById('dnsHistoryChart');
+        if (dnsHistoryChart) dnsHistoryChart.destroy();
+
+        dnsHistoryChart = new Chart(historyCtx, {
+            type: 'bar',
+            data: {
+                labels: data.history.labels,
+                datasets: data.history.datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: '#e2e8f0', padding: 20, font: { size: 13 } }
+                    }
+                },
+                scales: {
+                    x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error('DNS 数据加载失败:', err);
+        const errorHTML = `<div class="error-msg">❌ 加载失败: ${err.message}<br><button onclick="refreshDNS()" class="mt-4 px-6 py-2 bg-red-600 hover:bg-red-700 rounded-xl">重试</button></div>`;
+
+        const barContainer = document.getElementById('barContainer');
+        const historyContainer = document.getElementById('historyContainer');
+        if (barContainer) barContainer.innerHTML = errorHTML;
+        if (historyContainer) historyContainer.innerHTML += `<div class="error-msg mt-4">${err.message}</div>`;
+    } finally {
+        if (barLoading) barLoading.style.display = 'none';
+        if (historyLoading) historyLoading.style.display = 'none';
+    }
+}
+
+function refreshDNS() {
+    loadDNSData();
+}
+
+// 页面加载完成后执行，并每 25 秒自动刷新一次
+window.addEventListener('load', () => {
+    loadDNSData();
+    setInterval(loadDNSData, 25000);
+});
+</script>
+{% endblock %}

@@ -7,7 +7,8 @@ from .monitoring import (
     ping_host,
     http_check,
     parse_ping_output,
-    measure_jitter  # 新增导入
+    measure_jitter,
+    dns_resolve,  # 新增导入
 )
 
 import re
@@ -23,6 +24,13 @@ HTTP_TARGETS = [
     {'name': 'GitHub', 'url': 'https://github.com'},
 ]
 
+DNS_TARGETS = [
+    {'name': 'Google', 'domain': 'google.com'},
+    {'name': 'Cloudflare', 'domain': 'cloudflare.com'},
+    {'name': 'Baidu', 'domain': 'baidu.com'},
+    {'name': 'Quad9', 'domain': 'dns.quad9.net'},
+    {'name': '阿里DNS', 'domain': 'dns.aliyun.com'},
+]
 
 def multi_ping_task():
     """每分钟执行一次多目标 Ping + 网络抖动采集"""
@@ -88,12 +96,37 @@ def multi_http_task():
     print(f"[{timezone.now()}] 多目标 HTTP 任务完成")
 
 
+def multi_dns_task():
+    """每分钟执行一次多目标 DNS 解析时间采集"""
+    print(f"[{timezone.now()}] 执行多目标 DNS 解析时间任务...")
+
+    for target in DNS_TARGETS:
+        target_obj, _ = MonitorTarget.objects.get_or_create(
+            address=target['domain'],
+            defaults={'name': target['name'], 'target_type': 'domain'}
+        )
+
+        result = dns_resolve(target['domain'])   # ← 现在能正常调用了
+        dns_time = result.get('resolve_time') if result.get('success') else None
+        status = 'up' if result.get('success') else 'down'
+
+        MonitorResult.objects.create(
+            target=target_obj,
+            dns_resolve_time=dns_time,
+            status=status
+        )
+
+        print(f"  → {target['name']} ({target['domain']}): {dns_time}ms, 状态: {status}")
+
+    print(f"[{timezone.now()}] 多目标 DNS 任务完成")
+
+
 # =====================
 # 启动调度器
 # =====================
 def start_scheduler():
-    """启动后台定时任务（Ping + Jitter + HTTP）"""
-    scheduler = BackgroundScheduler(timezone='Asia/Tokyo')  # 改为东京时区（日本用户更合适）
+    """启动后台定时任务（Ping + Jitter + HTTP + DNS）"""
+    scheduler = BackgroundScheduler(timezone='Asia/Shanghai')  # 改成上海时区（新加坡/中国用户更合适）
 
     scheduler.add_job(
         multi_ping_task,
@@ -107,6 +140,12 @@ def start_scheduler():
         id='multi_http',
         replace_existing=True
     )
+    scheduler.add_job(
+        multi_dns_task,
+        IntervalTrigger(minutes=1),
+        id='multi_dns',
+        replace_existing=True
+    )
 
     scheduler.start()
-    print("✅ APScheduler 已成功启动 - Ping+Jitter + HTTP 每分钟执行一次")
+    print("✅ APScheduler 已成功启动 - Ping + Jitter + HTTP + DNS 每分钟执行一次")

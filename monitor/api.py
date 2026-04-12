@@ -223,18 +223,73 @@ def multi_http_api(request):
 
 
 # =====================
-# 6. DNS + 综合 + 系统信息
+# 8. 多目标 DNS 解析时间 API（已修复）
 # =====================
-def dns_api(request):
-    domain = request.GET.get('domain')
-    if not domain:
-        return error('domain is required')
-    result = dns_resolve(domain)
-    return success({
-        'type': 'dns',
-        'domain': domain,
-        'result': result
-    })
+DNS_TARGETS = [
+    {'name': 'Google', 'domain': 'google.com'},
+    {'name': 'Cloudflare', 'domain': 'cloudflare.com'},
+    {'name': 'Baidu', 'domain': 'baidu.com'},
+    {'name': 'Quad9', 'domain': 'dns.quad9.net'},
+    {'name': '阿里DNS', 'domain': 'dns.aliyun.com'},
+]
+
+def multi_dns_api(request):
+    """返回多目标 DNS 最新解析时间 + 最近20条历史趋势"""
+    try:
+        results = []
+        history_data = {'labels': [], 'datasets': []}
+        colors = ['#22d3ee', '#a855f7', '#f472b6', '#fb923c', '#eab308']
+
+        for idx, target in enumerate(DNS_TARGETS):
+            # 查询最新记录
+            latest = MonitorResult.objects.filter(
+                target__address=target['domain']
+            ).order_by('-timestamp').first()
+
+            dns_time = round(latest.dns_resolve_time, 2) if latest and latest.dns_resolve_time is not None else 0
+            timestamp = latest.timestamp.strftime('%H:%M:%S') if latest else '无数据'
+
+            results.append({
+                'target': target['name'],
+                'domain': target['domain'],
+                'resolve_time': dns_time,
+                'timestamp': timestamp
+            })
+
+            # 最近20条历史记录（用于柱状图）
+            history = MonitorResult.objects.filter(
+                target__address=target['domain']
+            ).order_by('-timestamp')[:20]
+
+            time_labels = [h.timestamp.strftime('%H:%M') for h in reversed(history)]
+            dns_values = [round(h.dns_resolve_time or 0, 2) for h in reversed(history)]
+
+            # 补齐20条
+            while len(time_labels) < 20:
+                time_labels.insert(0, f"历史-{20-len(time_labels)}")
+                dns_values.insert(0, 0)
+
+            history_data['datasets'].append({
+                'label': target['name'],
+                'data': dns_values,
+                'backgroundColor': colors[idx],
+                'borderColor': colors[idx],
+                'borderWidth': 1,
+                'borderRadius': 4,
+            })
+
+        history_data['labels'] = time_labels if time_labels else [f"第{i}次" for i in range(20)]
+
+        return success({
+            'targets': [t['name'] for t in DNS_TARGETS],
+            'results': results,
+            'history': history_data
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return error(f'获取多目标DNS数据失败: {str(e)}')
 
 
 def full_check_api(request):

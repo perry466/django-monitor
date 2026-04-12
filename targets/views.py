@@ -64,6 +64,6 @@ def get_targets_by_category(request):
     targets = MonitorTarget.objects.filter(
         description=f"category:{category}",
         is_active=True
-    ).values('id', 'name', 'address', 'target_type', 'is_active')
+    ).order_by('id').values('id', 'name', 'address', 'target_type', 'is_active')
 
     return JsonResponse({'status': 'success', 'targets': list(targets)})

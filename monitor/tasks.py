@@ -9,80 +9,96 @@ from .monitoring import (
     parse_ping_output,
     measure_jitter,
     dns_resolve,
-    get_tcp_retransmit_rate,   # 新增导入
+    get_tcp_retransmit_rate,
 )
 
-import re
+# =====================
+# 动态获取目标（核心完善）
+# =====================
+def get_targets_for_category(category: str):
+    """根据分类获取活跃监控目标"""
+    return MonitorTarget.objects.filter(
+        description=f"category:{category}",
+        is_active=True
+    ).order_by('name')
 
-# Ping 目标（同时用于抖动采集）
-TARGET_ADDRESSES = ['8.8.8.8', '1.1.1.1', 'baidu.com', '114.114.114.114']
 
-# HTTP 响应时间监控目标
-HTTP_TARGETS = [
-    {'name': 'Google', 'url': 'https://www.google.com'},
-    {'name': 'Baidu', 'url': 'https://www.baidu.com'},
-    {'name': 'Cloudflare', 'url': 'https://www.cloudflare.com'},
-    {'name': 'GitHub', 'url': 'https://github.com'},
-]
-
-DNS_TARGETS = [
-    {'name': 'Google', 'domain': 'google.com'},
-    {'name': 'Cloudflare', 'domain': 'cloudflare.com'},
-    {'name': 'Baidu', 'domain': 'baidu.com'},
-    {'name': 'Quad9', 'domain': 'dns.quad9.net'},
-    {'name': '阿里DNS', 'domain': 'dns.aliyun.com'},
-]
-
+# =====================
+# 定时任务（现在完全动态）
+# =====================
 def multi_ping_task():
     """每分钟执行一次多目标 Ping + 网络抖动采集"""
     print(f"[{timezone.now()}] 执行多目标 Ping + Jitter 任务...")
 
-    for address in TARGET_ADDRESSES:
-        # 获取或创建监控目标
-        target_obj, created = MonitorTarget.objects.get_or_create(
-            address=address,
-            defaults={
-                'name': address,
-                'target_type': 'ip' if re.match(r'^\d', address) else 'domain'
-            }
-        )
+    targets_qs = get_targets_for_category('ping')
+    if not targets_qs.exists():
+        print("  ⚠️  'ping' 分类暂无目标，使用默认目标并自动保存")
+        defaults = [
+            {'address': '8.8.8.8', 'name': '8.8.8.8', 'type': 'ip'},
+            {'address': '1.1.1.1', 'name': '1.1.1.1', 'type': 'ip'},
+            {'address': 'baidu.com', 'name': 'baidu.com', 'type': 'domain'},
+            {'address': '114.114.114.114', 'name': '114.114.114.114', 'type': 'ip'},
+        ]
+        for d in defaults:
+            MonitorTarget.objects.update_or_create(
+                address=d['address'],
+                defaults={
+                    'name': d['name'],
+                    'target_type': d['type'],
+                    'description': 'category:ping',
+                    'is_active': True,
+                }
+            )
+        targets_qs = get_targets_for_category('ping')
 
-        # 基础 Ping 测试
+    for target_obj in targets_qs:
+        address = target_obj.address
         raw_result = ping_host(address)
         ping_time, packet_loss = parse_ping_output(raw_result)
-
-        # 新增：网络抖动测量（执行8次ping取抖动）
         jitter_data = measure_jitter(address, count=8)
-
-        # 保存到数据库（使用 jitter_std 作为主要抖动值）
-        jitter_value = jitter_data.get('jitter_std') or jitter_data.get('jitter_range')
+        jitter_value = jitter_data.get('jitter_std') or 0.0
 
         MonitorResult.objects.create(
             target=target_obj,
             ping_time=ping_time,
             packet_loss=packet_loss,
-            network_jitter=jitter_value,  # ← 关键：保存抖动数据
+            network_jitter=jitter_value,
             status='up' if ping_time is not None else 'down'
         )
 
-        # 控制台输出
-        jitter_str = f"{jitter_value}ms" if jitter_value is not None else "N/A"
-        print(f"  → {address}: {ping_time}ms, 丢包 {packet_loss}%, 抖动 {jitter_str}")
+        jitter_str = f"{jitter_value}ms" if jitter_value else "N/A"
+        print(f"  → {target_obj.name} ({address}): {ping_time}ms, 丢包 {packet_loss}%, 抖动 {jitter_str}")
 
     print(f"[{timezone.now()}] 多目标 Ping + Jitter 任务完成")
 
 
 def multi_http_task():
-    """每分钟执行一次多目标 HTTP 响应时间检查"""
+    """每分钟执行多目标 HTTP 响应时间"""
     print(f"[{timezone.now()}] 执行多目标 HTTP 响应时间任务...")
 
-    for target in HTTP_TARGETS:
-        target_obj, _ = MonitorTarget.objects.get_or_create(
-            address=target['url'],
-            defaults={'name': target['name'], 'target_type': 'url'}
-        )
+    targets_qs = get_targets_for_category('http')
+    if not targets_qs.exists():
+        print("  ⚠️  'http' 分类暂无目标，使用默认目标并自动保存")
+        defaults = [
+            {'address': 'https://www.google.com', 'name': 'Google', 'type': 'url'},
+            {'address': 'https://www.baidu.com', 'name': 'Baidu', 'type': 'url'},
+            {'address': 'https://www.cloudflare.com', 'name': 'Cloudflare', 'type': 'url'},
+            {'address': 'https://github.com', 'name': 'GitHub', 'type': 'url'},
+        ]
+        for d in defaults:
+            MonitorTarget.objects.update_or_create(
+                address=d['address'],
+                defaults={
+                    'name': d['name'],
+                    'target_type': d['type'],
+                    'description': 'category:http',
+                    'is_active': True,
+                }
+            )
+        targets_qs = get_targets_for_category('http')
 
-        result = http_check(target['url'])
+    for target_obj in targets_qs:
+        result = http_check(target_obj.address)
         http_time = result.get('response_time') if result.get('success') else None
         status = 'up' if result.get('success') else 'down'
 
@@ -91,23 +107,39 @@ def multi_http_task():
             http_response_time=http_time,
             status=status
         )
-
-        print(f"  → {target['name']} ({target['url']}): {http_time}ms, 状态: {status}")
+        print(f"  → {target_obj.name} ({target_obj.address}): {http_time}ms, 状态: {status}")
 
     print(f"[{timezone.now()}] 多目标 HTTP 任务完成")
 
 
 def multi_dns_task():
-    """每分钟执行一次多目标 DNS 解析时间采集"""
+    """每分钟执行多目标 DNS 解析时间"""
     print(f"[{timezone.now()}] 执行多目标 DNS 解析时间任务...")
 
-    for target in DNS_TARGETS:
-        target_obj, _ = MonitorTarget.objects.get_or_create(
-            address=target['domain'],
-            defaults={'name': target['name'], 'target_type': 'domain'}
-        )
+    targets_qs = get_targets_for_category('dns')
+    if not targets_qs.exists():
+        print("  ⚠️  'dns' 分类暂无目标，使用默认目标并自动保存")
+        defaults = [
+            {'address': 'google.com', 'name': 'Google', 'type': 'domain'},
+            {'address': 'cloudflare.com', 'name': 'Cloudflare', 'type': 'domain'},
+            {'address': 'baidu.com', 'name': 'Baidu', 'type': 'domain'},
+            {'address': 'dns.quad9.net', 'name': 'Quad9', 'type': 'domain'},
+            {'address': 'dns.aliyun.com', 'name': '阿里DNS', 'type': 'domain'},
+        ]
+        for d in defaults:
+            MonitorTarget.objects.update_or_create(
+                address=d['address'],
+                defaults={
+                    'name': d['name'],
+                    'target_type': d['type'],
+                    'description': 'category:dns',
+                    'is_active': True,
+                }
+            )
+        targets_qs = get_targets_for_category('dns')
 
-        result = dns_resolve(target['domain'])   # ← 现在能正常调用了
+    for target_obj in targets_qs:
+        result = dns_resolve(target_obj.address)
         dns_time = result.get('resolve_time') if result.get('success') else None
         status = 'up' if result.get('success') else 'down'
 
@@ -116,30 +148,24 @@ def multi_dns_task():
             dns_resolve_time=dns_time,
             status=status
         )
-
-        print(f"  → {target['name']} ({target['domain']}): {dns_time}ms, 状态: {status}")
+        print(f"  → {target_obj.name} ({target_obj.address}): {dns_time}ms, 状态: {status}")
 
     print(f"[{timezone.now()}] 多目标 DNS 任务完成")
 
 
 def multi_tcp_retrans_task():
-    """每分钟执行 TCP 重传率采集"""
+    """每分钟执行 TCP 重传率采集（系统级，无需配置）"""
     print(f"[{timezone.now()}] 执行 TCP 重传率采集任务...")
-
-    # 使用系统级目标（或复用现有 MonitorTarget）
     target_obj, _ = MonitorTarget.objects.get_or_create(
         address='system_tcp',
-        defaults={'name': 'TCP 重传率 (系统级)', 'target_type': 'ip'}
+        defaults={'name': 'TCP 重传率 (系统级)', 'target_type': 'ip', 'description': 'system'}
     )
-
     result = get_tcp_retransmit_rate()
-
     MonitorResult.objects.create(
         target=target_obj,
         tcp_retransmit_rate=result['retrans_rate'],
         status=result['status']
     )
-
     print(f"  → TCP 重传率: {result['retrans_rate']}%  状态: {result['status']}")
 
 
@@ -147,34 +173,10 @@ def multi_tcp_retrans_task():
 # 启动调度器
 # =====================
 def start_scheduler():
-    """启动后台定时任务（Ping + Jitter + HTTP + DNS）"""
-    scheduler = BackgroundScheduler(timezone='Asia/Shanghai')  # 改成上海时区（新加坡/中国用户更合适）
-
-    scheduler.add_job(
-        multi_ping_task,
-        IntervalTrigger(minutes=1),
-        id='multi_ping_jitter',
-        replace_existing=True
-    )
-    scheduler.add_job(
-        multi_http_task,
-        IntervalTrigger(minutes=1),
-        id='multi_http',
-        replace_existing=True
-    )
-    scheduler.add_job(
-        multi_dns_task,
-        IntervalTrigger(minutes=1),
-        id='multi_dns',
-        replace_existing=True
-    )
-
-    scheduler.add_job(
-        multi_tcp_retrans_task,
-        IntervalTrigger(minutes=1),
-        id='multi_tcp_retrans',
-        replace_existing=True
-    )
-
+    scheduler = BackgroundScheduler(timezone='Asia/Shanghai')
+    scheduler.add_job(multi_ping_task, IntervalTrigger(minutes=1), id='multi_ping_jitter', replace_existing=True)
+    scheduler.add_job(multi_http_task, IntervalTrigger(minutes=1), id='multi_http', replace_existing=True)
+    scheduler.add_job(multi_dns_task, IntervalTrigger(minutes=1), id='multi_dns', replace_existing=True)
+    scheduler.add_job(multi_tcp_retrans_task, IntervalTrigger(minutes=1), id='multi_tcp_retrans', replace_existing=True)
     scheduler.start()
-    print("✅ APScheduler 已成功启动 - Ping + Jitter + HTTP + DNS + TCP 每分钟执行一次")
+    print("✅ APScheduler 已成功启动 - 所有监控任务已支持动态配置")

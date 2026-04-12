@@ -13,7 +13,7 @@
             </div>
             <div>
                 <h1 class="text-2xl font-semibold tracking-tight">多目标 Ping 延迟监控</h1>
-                <p class="text-xs text-zinc-400 -mt-0.5">实时监测四条骨干线路 • 每分钟自动更新</p>
+                <p class="text-xs text-zinc-400 -mt-0.5">实时监测你配置的所有目标 • 每分钟自动更新</p>
             </div>
         </div>
 
@@ -26,98 +26,12 @@
 
     <div class="p-8 max-w-screen-2xl mx-auto">
 
-        <!-- 四张紧凑卡片 -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <!-- 卡片1 -->
-            <div id="card-1" class="bg-zinc-900/90 border border-zinc-800 hover:border-cyan-400/50 rounded-3xl p-5 transition-all group">
-                <div class="flex justify-between items-start">
-                    <div class="flex items-center gap-3">
-                        <span class="text-2xl">🌐</span>
-                        <div>
-                            <div class="font-mono text-lg font-semibold">8.8.8.8</div>
-                            <div class="text-xs text-zinc-500">Google DNS</div>
-                        </div>
-                    </div>
-                    <div id="status-dot-1" class="w-4 h-4 mt-1 rounded-full bg-emerald-500 ring-4 ring-emerald-500/30"></div>
-                </div>
-                <div class="mt-6 flex items-baseline gap-1">
-                    <span id="ping-1" class="text-4xl font-semibold tabular-nums">—</span>
-                    <span class="text-zinc-400 text-lg">ms</span>
-                </div>
-                <div class="mt-5 flex justify-between text-sm">
-                    <span class="text-zinc-400">丢包率</span>
-                    <span id="loss-1" class="font-mono text-emerald-400">0.0%</span>
-                </div>
-            </div>
-
-            <!-- 卡片2 -->
-            <div id="card-2" class="bg-zinc-900/90 border border-zinc-800 hover:border-purple-400/50 rounded-3xl p-5 transition-all group">
-                <div class="flex justify-between items-start">
-                    <div class="flex items-center gap-3">
-                        <span class="text-2xl">🌐</span>
-                        <div>
-                            <div class="font-mono text-lg font-semibold">1.1.1.1</div>
-                            <div class="text-xs text-zinc-500">Cloudflare DNS</div>
-                        </div>
-                    </div>
-                    <div id="status-dot-2" class="w-4 h-4 mt-1 rounded-full bg-emerald-500 ring-4 ring-emerald-500/30"></div>
-                </div>
-                <div class="mt-6 flex items-baseline gap-1">
-                    <span id="ping-2" class="text-4xl font-semibold tabular-nums">—</span>
-                    <span class="text-zinc-400 text-lg">ms</span>
-                </div>
-                <div class="mt-5 flex justify-between text-sm">
-                    <span class="text-zinc-400">丢包率</span>
-                    <span id="loss-2" class="font-mono text-emerald-400">0.0%</span>
-                </div>
-            </div>
-
-            <!-- 卡片3 -->
-            <div id="card-3" class="bg-zinc-900/90 border border-zinc-800 hover:border-pink-400/50 rounded-3xl p-5 transition-all group">
-                <div class="flex justify-between items-start">
-                    <div class="flex items-center gap-3">
-                        <span class="text-2xl">🌐</span>
-                        <div>
-                            <div class="font-mono text-lg font-semibold">baidu.com</div>
-                            <div class="text-xs text-zinc-500">百度</div>
-                        </div>
-                    </div>
-                    <div id="status-dot-3" class="w-4 h-4 mt-1 rounded-full bg-emerald-500 ring-4 ring-emerald-500/30"></div>
-                </div>
-                <div class="mt-6 flex items-baseline gap-1">
-                    <span id="ping-3" class="text-4xl font-semibold tabular-nums">—</span>
-                    <span class="text-zinc-400 text-lg">ms</span>
-                </div>
-                <div class="mt-5 flex justify-between text-sm">
-                    <span class="text-zinc-400">丢包率</span>
-                    <span id="loss-3" class="font-mono text-emerald-400">0.0%</span>
-                </div>
-            </div>
-
-            <!-- 卡片4 -->
-            <div id="card-4" class="bg-zinc-900/90 border border-zinc-800 hover:border-orange-400/50 rounded-3xl p-5 transition-all group">
-                <div class="flex justify-between items-start">
-                    <div class="flex items-center gap-3">
-                        <span class="text-2xl">🌐</span>
-                        <div>
-                            <div class="font-mono text-lg font-semibold">114.114.114.114</div>
-                            <div class="text-xs text-zinc-500">中国公共DNS</div>
-                        </div>
-                    </div>
-                    <div id="status-dot-4" class="w-4 h-4 mt-1 rounded-full bg-emerald-500 ring-4 ring-emerald-500/30"></div>
-                </div>
-                <div class="mt-6 flex items-baseline gap-1">
-                    <span id="ping-4" class="text-4xl font-semibold tabular-nums">—</span>
-                    <span class="text-zinc-400 text-lg">ms</span>
-                </div>
-                <div class="mt-5 flex justify-between text-sm">
-                    <span class="text-zinc-400">丢包率</span>
-                    <span id="loss-4" class="font-mono text-emerald-400">0.0%</span>
-                </div>
-            </div>
+        <!-- 动态卡片容器（关键修改） -->
+        <div id="dynamic-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <!-- JavaScript 动态生成卡片 -->
         </div>
 
-        <!-- 图表区域（加大高度 + 只用浏览器一个滚动条） -->
+        <!-- 图表区域 -->
         <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-7">
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-3">
@@ -127,7 +41,6 @@
                 <div id="last-update" class="text-xs text-zinc-500 font-mono">最后更新: —</div>
             </div>
 
-            <!-- 图表容器 - 固定高度让折线完整显示 -->
             <div class="relative" style="height: 580px;">
                 <canvas id="latencyChart" class="w-full h-full"></canvas>
             </div>
@@ -141,14 +54,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <script>
-// Chart.js 初始化
+// Chart.js 初始化（支持任意数量目标）
 let latencyChart = null;
-const targetInfo = [
-    { name: "8.8.8.8",     color: "#22d3ee" },
-    { name: "1.1.1.1",     color: "#a855f7" },
-    { name: "baidu.com",   color: "#f472b6" },
-    { name: "114.114.114.114", color: "#fb923c" }
-];
 
 function initChart() {
     const ctx = document.getElementById('latencyChart');
@@ -156,17 +63,7 @@ function initChart() {
         type: 'line',
         data: {
             labels: Array(20).fill(''),
-            datasets: targetInfo.map(t => ({
-                label: t.name,
-                data: Array(20).fill(0),
-                borderColor: t.color,
-                backgroundColor: 'transparent',
-                borderWidth: 3.5,
-                tension: 0.4,
-                pointRadius: 2,
-                pointHoverRadius: 6,
-                pointBackgroundColor: '#18181b'
-            }))
+            datasets: []   // 初始为空，后续动态填充
         },
         options: {
             maintainAspectRatio: false,
@@ -184,23 +81,50 @@ function initChart() {
     });
 }
 
-function updateCards(results) {
+// 动态渲染卡片（核心功能）
+function renderCards(results) {
+    const container = document.getElementById('dynamic-cards');
+    container.innerHTML = '';
+
+    const colors = ['#22d3ee', '#a855f7', '#f472b6', '#fb923c'];
+
     results.forEach((item, i) => {
-        const idx = i + 1;
-        document.getElementById(`ping-${idx}`).textContent = (item.ping_time || 0).toFixed(1);
-        const lossEl = document.getElementById(`loss-${idx}`);
+        const color = colors[i % colors.length];
         const loss = item.packet_loss || 0;
-        lossEl.textContent = loss.toFixed(1) + '%';
-        lossEl.className = `font-mono ${loss > 5 ? 'text-red-400' : 'text-emerald-400'}`;
-        const dot = document.getElementById(`status-dot-${idx}`);
-        dot.style.backgroundColor = (item.ping_time !== null && loss < 8) ? '#10b981' : '#ef4444';
+        const isGood = item.ping_time !== null && loss < 8;
+        const statusColor = isGood ? '#10b981' : '#ef4444';
+
+        const cardHTML = `
+            <div class="bg-zinc-900/90 border border-zinc-800 hover:border-[${color}]/50 rounded-3xl p-5 transition-all group" style="border-color: ${color}30;">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">🌐</span>
+                        <div>
+                            <div class="font-mono text-lg font-semibold">${item.target}</div>
+                        </div>
+                    </div>
+                    <div class="w-4 h-4 mt-1 rounded-full ring-4 ring-offset-2 ring-offset-zinc-900"
+                         style="background-color: ${statusColor}; box-shadow: 0 0 0 4px ${statusColor}30;">
+                    </div>
+                </div>
+                <div class="mt-6 flex items-baseline gap-1">
+                    <span class="text-4xl font-semibold tabular-nums">${(item.ping_time || 0).toFixed(1)}</span>
+                    <span class="text-zinc-400 text-lg">ms</span>
+                </div>
+                <div class="mt-5 flex justify-between text-sm">
+                    <span class="text-zinc-400">丢包率</span>
+                    <span class="font-mono ${loss > 5 ? 'text-red-400' : 'text-emerald-400'}">${loss.toFixed(1)}%</span>
+                </div>
+            </div>
+        `;
+        container.innerHTML += cardHTML;
     });
 }
 
 function updateChart(history) {
     if (!latencyChart) return;
     latencyChart.data.labels = history.labels || Array(20).fill('');
-    latencyChart.data.datasets.forEach((ds, i) => ds.data = history.datasets[i] ? history.datasets[i].data : Array(20).fill(0));
+    latencyChart.data.datasets = history.datasets || [];
     latencyChart.update('none');
 }
 
@@ -208,25 +132,30 @@ async function fetchData() {
     try {
         const res = await fetch('/monitor/api/multi-ping/');
         const json = await res.json();
+
         if (json.code === 0 && json.data) {
-            updateCards(json.data.results);
+            renderCards(json.data.results);
             updateChart(json.data.history);
             document.getElementById('last-update').textContent = `最后更新: ${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`;
         }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        console.error('Ping 数据加载失败', e);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     initChart();
     fetchData();
 
+    // 手动刷新按钮
     document.getElementById('refresh-btn').addEventListener('click', () => {
         const btn = document.getElementById('refresh-btn');
         const orig = btn.innerHTML;
-        btn.innerHTML = `<span class="animate-spin">⟳</span> 刷新中...`;
-        fetchData().finally(() => btn.innerHTML = orig);
+        btn.innerHTML = `<span class="animate-spin inline-block">⟳</span> 刷新中...`;
+        fetchData().finally(() => { btn.innerHTML = orig; });
     });
 
+    // 每分钟自动刷新
     setInterval(fetchData, 60000);
 });
 </script>

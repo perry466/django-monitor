@@ -65,15 +65,29 @@ def http_check(url, timeout=5, retries=1):
 
 
 # =====================
-# 4. DNS解析
+# 4. DNS解析（增强版：返回时间 + IP）
 # =====================
-def dns_resolve(domain):
-    try:
-        ip = socket.gethostbyname(domain)
-        return ip
-    except Exception as e:
-        return str(e)
+DNS_TARGETS = [
+    {'name': 'Google', 'domain': 'google.com'},
+    {'name': 'Cloudflare', 'domain': 'cloudflare.com'},
+    {'name': 'Baidu', 'domain': 'baidu.com'},
+    {'name': 'Quad9', 'domain': 'dns.quad9.net'},
+    {'name': '阿里DNS', 'domain': 'dns.aliyun.com'},
+]
 
+def dns_resolve(domain):
+    """增强版DNS解析：返回解析时间(ms)和IP"""
+    try:
+        start = time.perf_counter()
+        ip = socket.gethostbyname(domain)
+        dns_time = (time.perf_counter() - start) * 1000  # ms
+        return {
+            'ip': ip,
+            'resolve_time': round(dns_time, 2),
+            'success': True
+        }
+    except Exception as e:
+        return {'error': str(e), 'resolve_time': None, 'success': False}
 
 # =====================
 # 5. 系统信息（内存/磁盘/网络速度）

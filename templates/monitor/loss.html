@@ -105,7 +105,7 @@
         <button onclick="refreshLossData()" class="refresh-btn">🔄 刷新数据</button>
     </div>
 
-    <!-- 4个监控卡片 -->
+    <!-- 4个监控卡片（现在会根据配置动态生成） -->
     <div class="cards-grid" id="cards-grid"></div>
 
     <!-- 横向对比条形图 -->
@@ -125,36 +125,33 @@
 
 {% block extra_script %}
 <script>
-// 目标配置
-const TARGETS = [
-    { id: '8.8.8.8',     name: '8.8.8.8',     desc: 'Google DNS' },
-    { id: '1.1.1.1',     name: '1.1.1.1',     desc: 'Cloudflare DNS' },
-    { id: 'baidu.com',   name: 'baidu.com',   desc: '百度' },
-    { id: '114.114.114.114', name: '114.114.114.114', desc: '中国公共DNS' }
-];
-
+// ====================== 核心修改点 ======================
+let cardsCreated = false;
 let lossChartData = [];
 
-// 创建初始卡片框架
-function createCards() {
+// 动态创建卡片（根据配置页修改的目标自动生成）
+function createCardsFromData(results) {
     const container = document.getElementById('cards-grid');
     container.innerHTML = '';
 
-    TARGETS.forEach(target => {
+    results.forEach(item => {
+        const targetName = item.target;                    // API 返回的名称
+        const safeId = targetName.replace(/\./g, '-');     // 防止 id 带点号问题
+
         const cardHTML = `
-            <div class="monitor-card" id="card-${target.id}">
+            <div class="monitor-card" id="card-${safeId}">
                 <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
                     <div style="font-size:2.6rem;">🌐</div>
                     <div>
-                        <h3 style="margin:0; color:#fff; font-size:1.45rem;">${target.name}</h3>
-                        <p style="margin:4px 0 0; color:#88f0e0; font-size:0.95rem;">${target.desc}</p>
+                        <h3 style="margin:0; color:#fff; font-size:1.45rem;">${targetName}</h3>
+                        <p style="margin:4px 0 0; color:#88f0e0; font-size:0.95rem;">${targetName}</p>
                     </div>
                 </div>
 
-                <div id="loss-value-${target.id}" class="loss-value" style="color:#22c55e;">0.0</div>
+                <div id="loss-value-${safeId}" class="loss-value" style="color:#22c55e;">0.0</div>
                 <div style="color:#88f0e0; font-size:1.05rem;">丢包率 %</div>
 
-                <div id="status-${target.id}" class="status" style="background:rgba(34,197,94,0.2); color:#22c55e;">
+                <div id="status-${safeId}" class="status" style="background:rgba(34,197,94,0.2); color:#22c55e;">
                     优秀
                 </div>
             </div>
@@ -163,14 +160,15 @@ function createCards() {
     });
 }
 
-// 更新卡片数据（高性能）
+// 更新卡片数据（保持你原来的逻辑）
 function updateCards(results) {
     results.forEach(item => {
         const loss = parseFloat(item.packet_loss) || 0;
-        const targetId = item.target || item.name;
+        const targetName = item.target;
+        const safeId = targetName.replace(/\./g, '-');
 
-        const valueEl = document.getElementById(`loss-value-${targetId}`);
-        const statusEl = document.getElementById(`status-${targetId}`);
+        const valueEl = document.getElementById(`loss-value-${safeId}`);
+        const statusEl = document.getElementById(`status-${safeId}`);
 
         if (valueEl) {
             valueEl.textContent = loss.toFixed(1);
@@ -201,7 +199,7 @@ function updateCards(results) {
     });
 }
 
-// 渲染横向对比条形图（轻量版）
+// 渲染横向对比条形图（保持你原来的逻辑）
 function renderBarCharts(results) {
     const container = document.getElementById('bar-charts');
     container.innerHTML = '';
@@ -213,12 +211,12 @@ function renderBarCharts(results) {
         else if (loss > 5) color = '#f97316';
         else if (loss > 1) color = '#eab308';
 
-        const widthPercent = Math.min(loss * 8, 100);   // 视觉放大效果
+        const widthPercent = Math.min(loss * 8, 100);
 
         const barHTML = `
             <div style="margin-bottom: 20px;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.95rem;">
-                    <span>${item.target || item.name}</span>
+                    <span>${item.target}</span>
                     <span style="color:${color}; font-weight:600;">${loss.toFixed(1)}%</span>
                 </div>
                 <div style="background:rgba(255,255,255,0.08); height:14px; border-radius:9999px; overflow:hidden;">
@@ -230,7 +228,7 @@ function renderBarCharts(results) {
     });
 }
 
-// 刷新数据
+// ====================== 刷新函数（关键修改） ======================
 async function refreshLossData() {
     const btn = document.querySelector('.refresh-btn');
     const originalText = btn.innerHTML;
@@ -238,12 +236,19 @@ async function refreshLossData() {
     btn.disabled = true;
 
     try {
-        const res = await fetch('/monitor/api/multi-ping/');
+        // 【重点】改成调用新的 multi-loss API
+        const res = await fetch('/monitor/api/multi-loss/');
         const json = await res.json();
 
         if (json.code === 0) {
             const results = json.data?.results || [];
             lossChartData = results;
+
+            // 第一次加载时动态创建卡片
+            if (!cardsCreated) {
+                createCardsFromData(results);
+                cardsCreated = true;
+            }
 
             updateCards(results);
             renderBarCharts(results);
@@ -258,11 +263,8 @@ async function refreshLossData() {
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
-    createCards();
-    refreshLossData();
-
-    // 每60秒自动刷新一次（降低频率，减少卡顿）
-    setInterval(refreshLossData, 60000);
+    refreshLossData();           // 第一次加载就会创建卡片
+    setInterval(refreshLossData, 60000);   // 每分钟自动刷新
 });
 </script>
 {% endblock %}

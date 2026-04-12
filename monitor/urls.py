@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/http/', api.http_api),
     path('api/multi-http/', api.multi_http_api),
     path('api/multi-jitter/', api.multi_jitter_api, name='multi_jitter'),
+    path('api/multi-loss/', api.multi_loss_api, name='multi_loss_api'),
     path('api/multi-dns/', api.multi_dns_api, name='multi_dns'),
 
     # ←←← 关键：TCP 重传率 API（必须这样写） ←←←

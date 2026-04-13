@@ -3,41 +3,47 @@
 {% block title %}TCP 重传率监控 - NEON MONITOR{% endblock %}
 
 {% block content %}
-<div style="max-width: 1250px; margin: 30px auto; padding: 20px;">
+<div class="tcp-fullscreen-wrapper">
     <div class="neon-card">
+
+        <!-- 顶部标题栏（按钮在右上角） -->
         <div class="header">
-            <span class="icon">🔄</span>
-            <h1>TCP 重传率监控</h1>
-            <p>系统级 TCP 段重传比例 • 当前网络非常稳定</p>
-        </div>
+            <div class="title-group">
+                <span class="icon">🔄</span>
+                <h1>TCP 重传率监控</h1>
+                <p>系统级 TCP 段重传比例 • 实时监控网络稳定性</p>
+            </div>
 
-        <div class="refresh-bar">
+            <!-- 优化后的立即刷新按钮（更匹配 NeON 主题） -->
             <button onclick="loadData()" class="neon-btn">🔄 立即刷新</button>
-            <span>最后更新: <span id="last-update">——</span></span>
         </div>
 
-        <!-- 当前数值展示 -->
+        <!-- 当前状态（再次缩小） -->
         <div class="current-status">
             <div class="value-group">
                 <div class="label">当前重传率</div>
-                <div id="current-rate" class="big-value">0.000</div>
-                <span class="unit">%</span>
+                <div class="big-value-wrapper">
+                    <div id="current-rate" class="big-value">0.000</div>
+                    <span class="unit">%</span>
+                </div>
             </div>
             <div id="status-badge" class="badge excellent">EXCELLENT</div>
         </div>
 
-        <!-- 趋势图 -->
-        <div class="chart-container">
+        <!-- 图表区（再次放大，占据更多空间） -->
+        <div class="chart-section">
             <h3>📈 最近 20 次重传率趋势（折线 + 面积图）</h3>
-            <div style="height: 460px; position: relative;">
+            <div class="chart-wrapper">
                 <canvas id="tcpRetransChart"></canvas>
             </div>
         </div>
 
+        <!-- 底部说明 -->
         <div class="info-box">
             <strong>当前情况：</strong> 重传率持续为 0.0%，说明网络链路稳定、无明显丢包。<br>
             当网络出现波动时，重传率会上升，面积填充会明显变大。
         </div>
+
     </div>
 </div>
 {% endblock %}
@@ -51,33 +57,36 @@ function loadData() {
     fetch('/monitor/api/multi-tcp-retrans/')
         .then(r => r.json())
         .then(res => {
-            if (res.code !== 0) return;
+            if (res.code !== 0) {
+                console.error('API 错误:', res.msg);
+                return;
+            }
 
             const d = res.data;
 
-            // 更新顶部数值
             document.getElementById('current-rate').textContent = d.current_rate.toFixed(3);
-            document.getElementById('last-update').textContent = d.timestamp || '刚刚';
 
-            // 更新状态徽章
             const badge = document.getElementById('status-badge');
-            badge.textContent = (d.status || 'excellent').toUpperCase();
-            badge.className = `badge ${d.status || 'excellent'}`;
+            const status = (d.status || 'excellent').toLowerCase();
+            badge.textContent = status.toUpperCase();
+            badge.className = `badge ${status}`;
 
-            // 准备图表数据
+            const labels = d.history?.labels || Array(20).fill('—');
+            const rateData = d.history?.datasets?.[0]?.data || Array(20).fill(0);
+
             const ctx = document.getElementById('tcpRetransChart');
             if (tcpChart) tcpChart.destroy();
 
             tcpChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: d.history.labels,
+                    labels: labels,
                     datasets: [
                         {
                             label: 'TCP 重传率 (%)',
-                            data: d.history.datasets[0].data,
+                            data: rateData,
                             borderColor: '#f87171',
-                            backgroundColor: 'rgba(248, 113, 113, 0.22)',   // 面积填充
+                            backgroundColor: 'rgba(248, 113, 113, 0.25)',
                             borderWidth: 4,
                             tension: 0.4,
                             fill: true,
@@ -86,7 +95,7 @@ function loadData() {
                         },
                         {
                             label: '1% 警示线',
-                            data: Array(d.history.labels.length).fill(1),
+                            data: Array(labels.length).fill(1),
                             borderColor: '#ef4444',
                             borderWidth: 2,
                             borderDash: [8, 3],
@@ -101,7 +110,7 @@ function loadData() {
                     scales: {
                         y: {
                             beginAtZero: true,
-                            max: 2.5,                    // 固定范围，让0也有明显显示
+                            max: 2.5,
                             grid: { color: '#334155' },
                             ticks: { color: '#94a3b8', stepSize: 0.5 }
                         },
@@ -113,46 +122,165 @@ function loadData() {
                     plugins: {
                         legend: {
                             display: true,
-                            labels: { color: '#e2e8f0', padding: 15 }
+                            labels: { color: '#e2e8f0', padding: 15, font: { size: 15 } }
                         }
                     }
                 }
             });
         })
-        .catch(err => console.error(err));
+        .catch(err => console.error('请求失败:', err));
 }
 
-// 页面加载自动刷新 + 每分钟自动更新
 window.onload = loadData;
 setInterval(loadData, 60000);
 </script>
 
 <style>
+.tcp-fullscreen-wrapper {
+    width: 100%;
+    height: calc(100vh - 85px);
+    padding: 15px 20px;
+    margin: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    align-items: stretch;
+}
+
 .neon-card {
     background: #0f172a;
     border: 1px solid #6366f1;
-    border-radius: 16px;
-    padding: 32px;
-    box-shadow: 0 0 35px rgba(99, 102, 241, 0.45);
+    border-radius: 20px;
+    box-shadow: 0 0 40px rgba(99, 102, 241, 0.5);
     color: #e2e8f0;
+    width: 100%;
+    height: 100%;
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    overflow: hidden;
+}
+
+/* 标题栏 */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 20px;
+}
+.title-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.header .icon { font-size: 2.6rem; }
+.header h1 { margin: 0; font-size: 2.1rem; font-weight: 700; }
+.header p { margin: 0; color: #64748b; font-size: 1.05rem; }
+
+/* 优化后的 NeON 主题刷新按钮 */
+.neon-btn {
+    background: transparent;
+    color: #a5b4fc;
+    border: 2px solid #6366f1;
+    padding: 11px 26px;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    cursor: pointer;
+    box-shadow:
+        0 0 15px #6366f1,
+        0 0 30px rgba(99, 102, 241, 0.4);
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.neon-btn:hover {
+    background: #6366f1;
+    color: white;
+    box-shadow:
+        0 0 25px #6366f1,
+        0 0 45px rgba(99, 102, 241, 0.7);
+    transform: translateY(-2px);
+}
+
+/* 当前数据再次缩小 */
+.current-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(15, 23, 42, 0.7);
+    border-radius: 18px;
+    padding: 20px 32px;
+    flex-shrink: 0;
+}
+.value-group .label {
+    font-size: 1.05rem;
+    color: #64748b;
+}
+.big-value-wrapper {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
 }
 .big-value {
-    font-size: 5.5rem;
+    font-size: 3.6rem;        /* 再次缩小 */
     font-weight: 700;
     color: #22c55e;
     line-height: 1;
 }
-.unit { font-size: 2.2rem; color: #94a3b8; }
-.badge {
-    padding: 16px 38px;
-    border-radius: 9999px;
-    font-size: 1.4rem;
-    font-weight: bold;
+.unit {
+    font-size: 1.8rem;
+    color: #94a3b8;
 }
-.excellent { background: #22c55e; color: black; }
-.warning { background: #eab308; color: black; }
-.critical { background: #ef4444; color: white; }
-.chart-container { margin-top: 40px; }
-.info-box { margin-top: 30px; color: #94a3b8; line-height: 1.6; }
+
+/* 图表区再次放大（占据更多空间） */
+.chart-section {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.chart-section h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.3rem;
+}
+.chart-wrapper {
+    flex: 1;
+    position: relative;
+    border-radius: 16px;
+    background: #1e2937;
+    padding: 10px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+}
+
+/* 底部说明 */
+.info-box {
+    flex-shrink: 0;
+    background: rgba(15, 23, 42, 0.5);
+    padding: 16px 24px;
+    border-radius: 12px;
+    border-left: 6px solid #6366f1;
+    line-height: 1.7;
+    font-size: 1.02rem;
+    color: #94a3b8;
+}
+
+/* 状态徽章略微缩小 */
+.badge {
+    padding: 12px 30px;
+    border-radius: 9999px;
+    font-size: 1.25rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.excellent { background: #22c55e; color: #000; }
+.warning { background: #eab308; color: #000; }
+.critical { background: #ef4444; color: #fff; }
 </style>
 {% endblock %}

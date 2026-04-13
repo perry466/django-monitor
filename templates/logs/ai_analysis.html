@@ -120,7 +120,7 @@
                 </p>
             </div>
 
-            <!-- 生成诊断报告按钮（放在中间方框下面） -->
+            <!-- 生成诊断报告按钮 -->
             <button onclick="generateReport()" class="generate-report-btn">
                 🚀 生成 AI 诊断报告
             </button>
@@ -241,7 +241,7 @@ async function saveConfig() {
     };
 
     try {
-        const res = await fetch('/monitor/api/save-ai-config/', {
+        const res = await fetch('/logs/api/save-ai-config/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -270,20 +270,23 @@ async function generateReport() {
     emptyState.classList.add('hidden');
 
     try {
-        const res = await fetch('/monitor/api/ai-report/', {
-            method: 'POST',
+        const res = await fetch('/logs/api/ai-report/', {
+            method: 'POST',                    // ← 确保是 POST
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                'X-CSRFToken': getCsrfToken()   // ← 改进 CSRF 获取方式
             }
         });
+
         const result = await res.json();
 
         analyzing.classList.add('hidden');
 
         if (result.success) {
-            document.getElementById('report-text').innerHTML = result.report.replace(/\n/g, '<br><br>');
-            document.getElementById('model-badge').textContent = result.model_used || 'AI 模型';
+            document.getElementById('report-text').innerHTML =
+                result.report.replace(/\n/g, '<br><br>');
+            document.getElementById('model-badge').textContent =
+                result.model_used || 'AI 模型';
             reportCard.classList.remove('hidden');
         } else {
             alert('生成失败：' + (result.error || '未知错误'));
@@ -291,9 +294,19 @@ async function generateReport() {
         }
     } catch (e) {
         analyzing.classList.add('hidden');
-        alert('请求失败，请检查网络或 API Key');
+        console.error(e);
+        alert('请求失败，请检查网络或 API Key 配置');
         emptyState.classList.remove('hidden');
     }
+}
+
+// 辅助函数：更可靠地获取 CSRF Token
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value
+           || document.cookie.split('; ')
+              .find(row => row.startsWith('csrftoken='))
+              ?.split('=')[1]
+           || '';
 }
 </script>
 {% endblock %}

@@ -1,16 +1,41 @@
-# django-monitor-main/logs/models.py
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 
 
 class MonitorLog(models.Model):
-    target = models.CharField(max_length=100)
-    result = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
+    target = models.CharField(max_length=100, verbose_name='监控目标')
+    result = models.TextField(verbose_name='日志内容')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='记录时间')
+    log_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('ping', 'Ping监控'),
+            ('http', 'HTTP监控'),
+            ('dns', 'DNS监控'),
+            ('jitter', '抖动监控'),
+            ('tcp_retrans', 'TCP重传'),
+            ('system', '系统日志'),
+            ('ai', 'AI分析'),
+        ],
+        default='system',
+        verbose_name='日志类型'
+    )
+    level = models.CharField(
+        max_length=10,
+        choices=[('INFO', '信息'), ('WARNING', '警告'), ('ERROR', '错误')],
+        default='INFO',
+        verbose_name='日志级别'
+    )
 
     class Meta:
         db_table = 'logs_monitorlog'
-        verbose_name = '监控日志'
-        verbose_name_plural = '监控日志'
+        verbose_name = '系统日志'
+        verbose_name_plural = '系统日志'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.created_at.strftime('%Y-%m-%d %H:%M:%S')}] {self.target} - {self.level}"
 
 
 class AIConfig(models.Model):

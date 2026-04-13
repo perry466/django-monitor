@@ -125,6 +125,109 @@ def ai_generate_report(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+
+@csrf_exempt
+def ai_analyze_logs(request):
+    """新增：AI 分析系统日志"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': '只支持 POST 请求'}, status=405)
+
+    try:
+        config = AIConfig.objects.filter(is_active=True).first()
+        if not config:
+            return JsonResponse({'success': False, 'error': '请先创建 AI 配置'}, status=400)
+
+        # 获取 API Key（与原有逻辑一致）
+        api_key = config.api_key.strip() if config.api_key else None
+        if not api_key:
+            env_map = {
+                'deepseek': 'DEEPSEEK_API_KEY',
+                'qwen': 'DASHSCOPE_API_KEY',
+                'openai': 'OPENAI_API_KEY',
+                'groq': 'GROQ_API_KEY',
+            }
+            env_key = env_map.get(config.provider)
+            if env_key:
+                api_key = os.getenv(env_key)
+
+        if not api_key:
+            return JsonResponse({'success': False, 'error': f'未找到 {config.provider} 的 API Key！'}, status=400)
+
+        # 获取最近的系统日志（默认最近50条，可通过参数过滤）
+        log_type = request.POST.get('log_type', 'all')  # all, ping, http, dns, jitter, tcp_retrans, system, ai
+        level = request.POST.get('level', 'all')        # all, INFO, WARNING, ERROR
+
+        queryset = MonitorLog.objects.all().order_by('-created_at')[:50]
+
+        if log_type != 'all':
+            queryset = queryset.filter(log_type=log_type)
+        if level != 'all':
+            queryset = queryset.filter(level=level)
+
+        logs_data = []
+        for log in queryset:
+            logs_data.append({
+                "time": log.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "target": log.target,
+                "level": log.level,
+                "type": log.get_log_type_display(),
+                "content": log.result[:500] + "..." if len(log.result) > 500 else log.result
+            })
+
+        logs_str = json.dumps(logs_data, ensure_ascii=False, indent=2)
+
+        system_prompt = """你是一位经验丰富的网络运维专家。请对提供的系统日志进行深度分析，并生成一份专业、简洁的中文诊断报告。
+
+严格按照以下格式输出：
+
+第一行：只输出整体日志健康评分（优秀 / 良好 / 需关注 / 严重）
+
+然后空一行
+
+**日志整体分析：**
+用2-3句话总结日志反映的系统状况，重点指出频繁出现的错误、警告或异常模式。
+
+**主要问题及建议：**
+最多列出3条最重要的问题，每条格式如下：
+1. **问题描述**（具体指出日志中出现的关键词、目标、次数或异常时间）
+   建议：一句实用、可操作的处理建议
+
+要求：
+- 语言专业、客观、简洁
+- 总字数控制在400字以内
+- 如果日志正常，要明确指出“暂未发现明显异常”"""
+
+        client = OpenAI(
+            api_key=api_key,
+            base_url=config.base_url.strip() if config.base_url and config.base_url.strip() else None
+        )
+
+        response = client.chat.completions.create(
+            model=config.model_name,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"最近系统日志数据（JSON格式）：\n{logs_str}\n\n请按要求生成日志分析报告。"}
+            ],
+            temperature=config.temperature,
+            max_tokens=config.max_tokens,
+            timeout=30
+        )
+
+        report = response.choices[0].message.content.strip()
+
+        return JsonResponse({
+            'success': True,
+            'report': report,
+            'model_used': f"{config.provider} - {config.model_name}",
+            'log_count': len(logs_data)
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
 @csrf_exempt
 def save_ai_config(request):
     """保存 AI 配置"""
@@ -158,6 +261,11 @@ def save_ai_config(request):
             'success': False,
             'message': f'保存失败: {str(e)}'
         })
+
+
+
+
+
 
 
 # ====================== 系统日志功能 ======================

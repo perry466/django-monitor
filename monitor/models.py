@@ -92,3 +92,31 @@ class MonitoringSchedule(models.Model):
 
     def __str__(self):
         return f"{self.target.name} - {self.frequency}"
+
+
+
+from django.db import models
+
+class AIConfig(models.Model):
+    """AI 配置（API Key 从环境变量读取，模型可在前端修改）"""
+    PROVIDER_CHOICES = [
+        ('deepseek', 'DeepSeek'),
+        ('openai', 'OpenAI'),
+        ('groq', 'Groq'),
+        ('custom', '自定义'),
+    ]
+
+    provider = models.CharField(max_length=50, default='deepseek', choices=PROVIDER_CHOICES, verbose_name='提供商')
+    model_name = models.CharField(max_length=100, default='deepseek-chat', verbose_name='模型名称')
+    base_url = models.CharField(max_length=255, default='https://api.deepseek.com', blank=True, null=True, verbose_name='Base URL')
+    temperature = models.FloatField(default=0.3, verbose_name='Temperature')
+    max_tokens = models.IntegerField(default=400, verbose_name='最大 Tokens')
+
+    is_active = models.BooleanField(default=True, verbose_name='是否启用')
+
+    class Meta:
+        verbose_name = 'AI 配置'
+        verbose_name_plural = 'AI 配置'
+
+    def __str__(self):
+        return f"{self.provider} - {self.model_name}"

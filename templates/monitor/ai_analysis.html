@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}AI 智能分析 - NEON MONITOR{% endblock %}
+
+{% block extra_style %}
+<style>
+    .ai-page {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .config-card, .report-card {
+        background: #1f2937;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .section-title {
+        color: #67e8f9;
+        font-size: 1.35rem;
+        margin-bottom: 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    label {
+        display: block;
+        margin: 12px 0 6px;
+        color: #cbd5e1;
+        font-weight: 500;
+    }
+    input, select {
+        width: 100%;
+        padding: 12px 14px;
+        background: #334155;
+        border: 1px solid #475569;
+        border-radius: 8px;
+        color: white;
+        font-size: 1rem;
+    }
+    input:focus, select:focus {
+        outline: none;
+        border-color: #67e8f9;
+        box-shadow: 0 0 0 3px rgba(103, 232, 249, 0.2);
+    }
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.05rem;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, #22d3ee, #06b6d4);
+        color: #0f172a;
+        font-weight: bold;
+    }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(34, 211, 238, 0.4);
+    }
+    .btn-secondary {
+        background: #475569;
+        color: white;
+    }
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #67e8f9;
+        font-size: 1.1rem;
+    }
+    .report-card {
+        background: #1e2937;
+    }
+    .report-text {
+        line-height: 1.7;
+        white-space: pre-wrap;
+        color: #e2e8f0;
+        font-size: 1.05rem;
+    }
+    .status-badge {
+        padding: 6px 14px;
+        border-radius: 9999px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ai-page">
+    <div class="section-title">
+        🤖 AI 智能网络诊断
+    </div>
+    <p style="color:#94a3b8; margin-bottom: 30px;">
+        基于最近监控数据自动生成简洁专业的诊断报告 • 支持 DeepSeek / OpenAI
+    </p>
+
+    <!-- 配置区域 -->
+    <div class="config-card">
+        <h3 class="section-title">⚙️ AI 配置（可直接修改）</h3>
+
+        <label>提供商</label>
+        <select id="provider">
+            <option value="deepseek">DeepSeek</option>
+            <option value="openai">OpenAI</option>
+            <option value="groq">Groq</option>
+        </select>
+
+        <label>模型名称</label>
+        <input type="text" id="model_name"
+               value="{{ ai_config.model_name|default:'deepseek-chat' }}"
+               placeholder="deepseek-chat 或 gpt-4o-mini">
+
+        <label>Base URL（可选）</label>
+        <input type="text" id="base_url"
+               value="{{ ai_config.base_url|default:'https://api.deepseek.com' }}"
+               placeholder="https://api.deepseek.com">
+
+        <div style="margin-top: 20px; display: flex; gap: 12px;">
+            <button onclick="saveConfig()" class="btn btn-secondary">💾 保存配置</button>
+            <button onclick="generateReport()" class="btn btn-primary">🚀 生成 AI 诊断报告</button>
+        </div>
+
+        <p style="margin-top: 16px; color:#64748b; font-size: 0.95rem;">
+            💡 API Key 优先从环境变量 <code>DEEPSEEK_API_KEY</code> 读取（推荐）
+        </p>
+    </div>
+
+    <!-- 加载中 -->
+    <div id="loading" class="loading" style="display: none;">
+        <p>🤖 AI 正在深度分析网络数据，请稍候...</p>
+    </div>
+
+    <!-- 报告展示区域 -->
+    <div id="report-container" class="report-card" style="display: none;">
+        <div class="section-title">📋 AI 诊断报告</div>
+        <div id="report-content" class="report-text"></div>
+        <div style="margin-top: 20px; color:#64748b; font-size: 0.9rem;" id="model-info"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+async function saveConfig() {
+    const data = {
+        provider: document.getElementById('provider').value,
+        model_name: document.getElementById('model_name').value.trim(),
+        base_url: document.getElementById('base_url').value.trim(),
+    };
+
+    try {
+        const res = await fetch('/monitor/api/save-ai-config/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+        if (result.success) {
+            alert('✅ 配置保存成功！');
+        } else {
+            alert('❌ 保存失败：' + result.message);
+        }
+    } catch (e) {
+        alert('请求失败，请检查网络');
+    }
+}
+
+async function generateReport() {
+    const loading = document.getElementById('loading');
+    const container = document.getElementById('report-container');
+    const content = document.getElementById('report-content');
+    const modelInfo = document.getElementById('model-info');
+
+    loading.style.display = 'block';
+    container.style.display = 'none';
+
+    try {
+        const res = await fetch('/monitor/api/ai-report/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            content.innerHTML = data.report.replace(/\n/g, '<br><br>');
+            modelInfo.textContent = `使用模型：${data.model_used}`;
+            container.style.display = 'block';
+        } else {
+            alert('生成失败：' + (data.error || '未知错误'));
+        }
+    } catch (e) {
+        alert('请求失败，请检查后端是否正常运行');
+    } finally {
+        loading.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

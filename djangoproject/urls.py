@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
-from monitor.views import dashboard
+from monitor.views import dashboard,ai_analysis
 
 def home(request):
     return HttpResponse("监控系统首页")
@@ -28,4 +28,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('monitor/', include('monitor.urls')),
     path('targets/', include('targets.urls')),
+    path('ai-analysis/',ai_analysis,name='ai_analysis'),
 ]

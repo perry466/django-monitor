@@ -98,20 +98,42 @@ class MonitoringSchedule(models.Model):
 from django.db import models
 
 class AIConfig(models.Model):
-    """AI 配置（API Key 从环境变量读取，模型可在前端修改）"""
+    """AI 配置（支持自定义 API Key + 中国大模型）"""
     PROVIDER_CHOICES = [
         ('deepseek', 'DeepSeek'),
+        ('qwen', '通义千问 (Qwen / DashScope)'),
         ('openai', 'OpenAI'),
         ('groq', 'Groq'),
-        ('custom', '自定义'),
+        ('custom', '自定义 OpenAI 兼容接口'),
     ]
 
-    provider = models.CharField(max_length=50, default='deepseek', choices=PROVIDER_CHOICES, verbose_name='提供商')
-    model_name = models.CharField(max_length=100, default='deepseek-chat', verbose_name='模型名称')
-    base_url = models.CharField(max_length=255, default='https://api.deepseek.com', blank=True, null=True, verbose_name='Base URL')
+    provider = models.CharField(
+        max_length=50,
+        default='deepseek',
+        choices=PROVIDER_CHOICES,
+        verbose_name='提供商'
+    )
+    model_name = models.CharField(
+        max_length=100,
+        default='deepseek-chat',
+        verbose_name='模型名称'
+    )
+    api_key = models.CharField(
+        blank=True,
+        null=True,
+        max_length=255,
+        verbose_name='API Key',
+        help_text='留空则自动从 .env 读取对应环境变量（推荐）'
+    )
+    base_url = models.CharField(
+        max_length=255,
+        default='https://api.deepseek.com',
+        blank=True,
+        null=True,
+        verbose_name='Base URL'
+    )
     temperature = models.FloatField(default=0.3, verbose_name='Temperature')
     max_tokens = models.IntegerField(default=400, verbose_name='最大 Tokens')
-
     is_active = models.BooleanField(default=True, verbose_name='是否启用')
 
     class Meta:

@@ -5,151 +5,239 @@
 {% block extra_style %}
 <style>
     .ai-page {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 20px;
+        background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%);
+        min-height: 100vh;
+        padding: 2rem 1rem;
     }
-    .config-card, .report-card {
-        background: #1f2937;
-        border-radius: 12px;
-        padding: 24px;
-        margin-bottom: 24px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    .glass-card {
+        background: rgba(255, 255, 255, 0.09);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        border-radius: 24px;
     }
-    .section-title {
-        color: #67e8f9;
-        font-size: 1.35rem;
-        margin-bottom: 18px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+
+    /* 配置面板 - 悬浮 */
+    .config-panel {
+        position: fixed;
+        top: 50%;
+        right: 80px;
+        transform: translateY(-50%) scale(0.95);
+        width: 420px;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    label {
-        display: block;
-        margin: 12px 0 6px;
-        color: #cbd5e1;
-        font-weight: 500;
+    .config-panel.show {
+        transform: translateY(-50%) scale(1);
+        opacity: 1;
+        visibility: visible;
     }
-    input, select {
-        width: 100%;
-        padding: 12px 14px;
-        background: #334155;
-        border: 1px solid #475569;
-        border-radius: 8px;
-        color: white;
-        font-size: 1rem;
-    }
-    input:focus, select:focus {
-        outline: none;
-        border-color: #67e8f9;
-        box-shadow: 0 0 0 3px rgba(103, 232, 249, 0.2);
-    }
-    .btn {
-        padding: 12px 24px;
-        border: none;
-        border-radius: 8px;
-        font-size: 1.05rem;
-        cursor: pointer;
+
+    .input-field {
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(148, 163, 184, 0.4);
         transition: all 0.3s;
     }
-    .btn-primary {
-        background: linear-gradient(135deg, #22d3ee, #06b6d4);
-        color: #0f172a;
-        font-weight: bold;
+    .input-field:focus {
+        border-color: #22d3ee;
+        box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.25);
+        background: rgba(0, 0, 0, 0.6);
     }
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(34, 211, 238, 0.4);
-    }
-    .btn-secondary {
-        background: #475569;
-        color: white;
-    }
-    .loading {
-        text-align: center;
-        padding: 40px;
-        color: #67e8f9;
-        font-size: 1.1rem;
-    }
-    .report-card {
-        background: #1e2937;
-    }
-    .report-text {
-        line-height: 1.7;
-        white-space: pre-wrap;
-        color: #e2e8f0;
-        font-size: 1.05rem;
-    }
-    .status-badge {
-        padding: 6px 14px;
-        border-radius: 9999px;
-        font-size: 0.9rem;
+
+    /* 生成报告大按钮 */
+    .generate-report-btn {
+        display: block;
+        width: 100%;
+        max-width: 420px;
+        margin: 30px auto 0;
+        padding: 18px 0;
+        font-size: 1.25rem;
         font-weight: 600;
+        color: white;
+        background: linear-gradient(90deg, #22d3ee, #a855f7, #ec4899);
+        border-radius: 9999px;
+        box-shadow: 0 10px 30px rgba(34, 211, 238, 0.4);
+        transition: all 0.4s ease;
+        text-align: center;
+        cursor: pointer;
+    }
+    .generate-report-btn:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 45px rgba(168, 85, 247, 0.5);
+        background: linear-gradient(90deg, #67e8f9, #c084fc, #f472b6);
+    }
+
+    .report-content {
+        white-space: pre-wrap;
+        line-height: 1.85;
+    }
+    .neon-text {
+        text-shadow: 0 0 12px #22d3ee;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="ai-page">
-    <div class="section-title">
-        🤖 AI 智能网络诊断
-    </div>
-    <p style="color:#94a3b8; margin-bottom: 30px;">
-        基于最近监控数据自动生成简洁专业的诊断报告 • 支持 DeepSeek / OpenAI
-    </p>
-
-    <!-- 配置区域 -->
-    <div class="config-card">
-        <h3 class="section-title">⚙️ AI 配置（可直接修改）</h3>
-
-        <label>提供商</label>
-        <select id="provider">
-            <option value="deepseek">DeepSeek</option>
-            <option value="openai">OpenAI</option>
-            <option value="groq">Groq</option>
-        </select>
-
-        <label>模型名称</label>
-        <input type="text" id="model_name"
-               value="{{ ai_config.model_name|default:'deepseek-chat' }}"
-               placeholder="deepseek-chat 或 gpt-4o-mini">
-
-        <label>Base URL（可选）</label>
-        <input type="text" id="base_url"
-               value="{{ ai_config.base_url|default:'https://api.deepseek.com' }}"
-               placeholder="https://api.deepseek.com">
-
-        <div style="margin-top: 20px; display: flex; gap: 12px;">
-            <button onclick="saveConfig()" class="btn btn-secondary">💾 保存配置</button>
-            <button onclick="generateReport()" class="btn btn-primary">🚀 生成 AI 诊断报告</button>
+    <div class="max-w-5xl mx-auto">
+        <!-- 标题 -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-white neon-text flex items-center justify-center gap-3">
+                <span>🤖</span> AI 智能网络诊断
+            </h1>
+            <p class="text-slate-400 mt-3 text-lg">
+                基于实时监控数据 · 瞬间生成专业诊断报告
+            </p>
         </div>
 
-        <p style="margin-top: 16px; color:#64748b; font-size: 0.95rem;">
-            💡 API Key 优先从环境变量 <code>DEEPSEEK_API_KEY</code> 读取（推荐）
-        </p>
+        <!-- 报告区域 -->
+        <div class="max-w-3xl mx-auto">
+            <div id="analyzing" class="glass-card rounded-3xl p-12 hidden text-center">
+                <div class="flex flex-col items-center justify-center py-16">
+                    <div class="w-20 h-20 border-4 border-t-cyan-400 border-slate-700 rounded-full animate-spin mb-8"></div>
+                    <p class="text-xl text-slate-300">AI 正在深度思考网络状况...</p>
+                    <p class="text-sm text-slate-500 mt-3">这可能需要几秒钟</p>
+                </div>
+            </div>
+
+            <div id="report-card" class="glass-card rounded-3xl p-10 hidden">
+                <div class="flex items-center justify-between mb-6 border-b border-slate-700 pb-5">
+                    <h3 class="text-2xl font-semibold text-white">📋 AI 诊断报告</h3>
+                    <span id="model-badge" class="px-5 py-1.5 bg-slate-800 text-cyan-400 text-sm rounded-full"></span>
+                </div>
+                <div id="report-text" class="report-content text-slate-200 text-[15.8px] leading-relaxed min-h-[340px]"></div>
+            </div>
+
+            <!-- 默认提示 -->
+            <div id="empty-state" class="glass-card rounded-3xl p-16 text-center">
+                <div class="mx-auto w-24 h-24 bg-slate-800 rounded-3xl flex items-center justify-center text-6xl mb-8">🤖</div>
+                <h3 class="text-2xl text-white mb-4">准备好进行智能诊断了吗？</h3>
+                <p class="text-slate-400 max-w-md mx-auto">
+                    先点击右下角 ⚙️ 配置 AI 参数<br>
+                    再点击下方按钮生成诊断报告
+                </p>
+            </div>
+
+            <!-- 生成诊断报告按钮（放在中间方框下面） -->
+            <button onclick="generateReport()" class="generate-report-btn">
+                🚀 生成 AI 诊断报告
+            </button>
+        </div>
     </div>
 
-    <!-- 加载中 -->
-    <div id="loading" class="loading" style="display: none;">
-        <p>🤖 AI 正在深度分析网络数据，请稍候...</p>
+    <!-- AI 配置中心（悬浮面板） -->
+    <div id="config-panel" class="config-panel glass-card p-9">
+        <div class="flex justify-between items-center mb-7">
+            <h2 class="text-2xl font-semibold text-white flex items-center gap-2">
+                ⚙️ AI 配置中心
+            </h2>
+            <button onclick="toggleConfigPanel()" class="text-3xl text-slate-400 hover:text-white leading-none">×</button>
+        </div>
+
+        <div class="space-y-6">
+            <div>
+                <label class="block text-sm text-slate-400 mb-2">提供商</label>
+                <select id="provider" onchange="updateDefaults()"
+                        class="input-field w-full px-5 py-4 rounded-2xl text-white focus:outline-none">
+                    <option value="deepseek" selected>DeepSeek</option>
+                    <option value="qwen">通义千问 (Qwen)</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="groq">Groq</option>
+                    <option value="custom">自定义兼容接口</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm text-slate-400 mb-2">模型名称</label>
+                <input type="text" id="model_name" value="{{ ai_config.model_name|default:'deepseek-chat' }}"
+                       class="input-field w-full px-5 py-4 rounded-2xl text-white">
+            </div>
+
+            <div>
+                <label class="block text-sm text-slate-400 mb-2">
+                    API Key <span class="text-xs text-emerald-400">(留空则使用 .env)</span>
+                </label>
+                <input type="password" id="api_key" value="{{ ai_config.api_key|default:'' }}"
+                       placeholder="sk-..." class="input-field w-full px-5 py-4 rounded-2xl text-white">
+            </div>
+
+            <div>
+                <label class="block text-sm text-slate-400 mb-2">Base URL（可选）</label>
+                <input type="text" id="base_url" value="{{ ai_config.base_url|default:'' }}"
+                       class="input-field w-full px-5 py-4 rounded-2xl text-white">
+            </div>
+
+            <div class="grid grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-2">Temperature</label>
+                    <input type="number" id="temperature" value="{{ ai_config.temperature|default:0.3 }}" step="0.1" min="0" max="1"
+                           class="input-field w-full px-5 py-4 rounded-2xl text-white">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-2">最大 Tokens</label>
+                    <input type="number" id="max_tokens" value="{{ ai_config.max_tokens|default:400 }}"
+                           class="input-field w-full px-5 py-4 rounded-2xl text-white">
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-10">
+            <button onclick="saveConfig()"
+                    class="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-4 rounded-2xl transition-all">
+                💾 保存配置
+            </button>
+        </div>
     </div>
 
-    <!-- 报告展示区域 -->
-    <div id="report-container" class="report-card" style="display: none;">
-        <div class="section-title">📋 AI 诊断报告</div>
-        <div id="report-content" class="report-text"></div>
-        <div style="margin-top: 20px; color:#64748b; font-size: 0.9rem;" id="model-info"></div>
+    <!-- 右下角悬浮配置按钮 -->
+    <div onclick="toggleConfigPanel()"
+         class="fixed bottom-8 right-8 w-16 h-16 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center text-3xl shadow-2xl cursor-pointer transition-all hover:scale-110 z-[999]"
+         title="AI 配置">
+        ⚙️
     </div>
 </div>
 {% endblock %}
 
 {% block extra_script %}
 <script>
+function toggleConfigPanel() {
+    const panel = document.getElementById('config-panel');
+    panel.classList.toggle('show');
+}
+
+function updateDefaults() {
+    const provider = document.getElementById('provider').value;
+    const model = document.getElementById('model_name');
+    const baseUrl = document.getElementById('base_url');
+
+    if (provider === 'deepseek') {
+        model.value = 'deepseek-chat';
+        baseUrl.value = 'https://api.deepseek.com';
+    } else if (provider === 'qwen') {
+        model.value = 'qwen-turbo';
+        baseUrl.value = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+    } else if (provider === 'openai') {
+        model.value = 'gpt-4o-mini';
+        baseUrl.value = 'https://api.openai.com/v1';
+    } else if (provider === 'groq') {
+        model.value = 'llama3-70b-8192';
+        baseUrl.value = 'https://api.groq.com/openai/v1';
+    } else if (provider === 'custom') {
+        model.value = '';
+        baseUrl.value = '';
+    }
+}
+
 async function saveConfig() {
     const data = {
         provider: document.getElementById('provider').value,
         model_name: document.getElementById('model_name').value.trim(),
+        api_key: document.getElementById('api_key').value.trim(),
         base_url: document.getElementById('base_url').value.trim(),
+        temperature: parseFloat(document.getElementById('temperature').value) || 0.3,
+        max_tokens: parseInt(document.getElementById('max_tokens').value) || 400,
     };
 
     try {
@@ -157,50 +245,54 @@ async function saveConfig() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
             },
             body: JSON.stringify(data)
         });
-
         const result = await res.json();
+
+        alert(result.message || result.error || '✅ 配置保存成功！');
         if (result.success) {
-            alert('✅ 配置保存成功！');
-        } else {
-            alert('❌ 保存失败：' + result.message);
+            toggleConfigPanel();
         }
     } catch (e) {
-        alert('请求失败，请检查网络');
+        alert('保存失败，请检查网络');
     }
 }
 
 async function generateReport() {
-    const loading = document.getElementById('loading');
-    const container = document.getElementById('report-container');
-    const content = document.getElementById('report-content');
-    const modelInfo = document.getElementById('model-info');
+    const analyzing = document.getElementById('analyzing');
+    const reportCard = document.getElementById('report-card');
+    const emptyState = document.getElementById('empty-state');
 
-    loading.style.display = 'block';
-    container.style.display = 'none';
+    analyzing.classList.remove('hidden');
+    reportCard.classList.add('hidden');
+    emptyState.classList.add('hidden');
 
     try {
         const res = await fetch('/monitor/api/ai-report/', {
             method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+            }
         });
+        const result = await res.json();
 
-        const data = await res.json();
+        analyzing.classList.add('hidden');
 
-        if (data.success) {
-            content.innerHTML = data.report.replace(/\n/g, '<br><br>');
-            modelInfo.textContent = `使用模型：${data.model_used}`;
-            container.style.display = 'block';
+        if (result.success) {
+            document.getElementById('report-text').innerHTML = result.report.replace(/\n/g, '<br><br>');
+            document.getElementById('model-badge').textContent = result.model_used || 'AI 模型';
+            reportCard.classList.remove('hidden');
         } else {
-            alert('生成失败：' + (data.error || '未知错误'));
+            alert('生成失败：' + (result.error || '未知错误'));
+            emptyState.classList.remove('hidden');
         }
     } catch (e) {
-        alert('请求失败，请检查后端是否正常运行');
-    } finally {
-        loading.style.display = 'none';
+        analyzing.classList.add('hidden');
+        alert('请求失败，请检查网络或 API Key');
+        emptyState.classList.remove('hidden');
     }
 }
 </script>

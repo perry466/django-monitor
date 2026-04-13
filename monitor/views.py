@@ -44,49 +44,51 @@ def ai_analysis(request):
 
 @csrf_exempt
 def ai_generate_report(request):
-    """生成 AI 诊断报告 - 支持环境变量读取 API Key"""
+    """生成 AI 诊断报告 - 支持自定义 API Key + 通义千问"""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': '只支持 POST 请求'})
 
     try:
         config = AIConfig.objects.filter(is_active=True).first()
         if not config:
-            return JsonResponse({'success': False, 'error': '请先在后台或前端创建 AI 配置'})
+            return JsonResponse({'success': False, 'error': '请先创建 AI 配置'})
 
-        # ==================== 优先从环境变量读取 API Key ====================
-        api_key = None
-        if config.provider == 'deepseek':
-            api_key = os.getenv('DEEPSEEK_API_KEY')
-        elif config.provider == 'openai':
-            api_key = os.getenv('OPENAI_API_KEY')
-        else:
-            api_key = config.api_key   # 兼容旧配置
+        # ==================== 智能获取 API Key ====================
+        api_key = config.api_key.strip() if config.api_key else None
+
+        if not api_key:
+            env_map = {
+                'deepseek': 'DEEPSEEK_API_KEY',
+                'qwen': 'DASHSCOPE_API_KEY',  # 千问官方环境变量名
+                'openai': 'OPENAI_API_KEY',
+                'groq': 'GROQ_API_KEY',
+            }
+            env_key = env_map.get(config.provider)
+            if env_key:
+                api_key = os.getenv(env_key)
 
         if not api_key:
             return JsonResponse({
                 'success': False,
-                'error': f'未找到 {config.provider} 的 API Key！请在 .env 文件中设置 DEEPSEEK_API_KEY'
+                'error': f'未找到 {config.provider} 的 API Key！请在配置页面填写 API Key 或在 .env 中设置对应环境变量'
             })
 
-        # 获取监控数据（限制20条，节省token）
+        # 获取最新监控数据
         recent_results = MonitorResult.objects.select_related('target').order_by('-timestamp')[:50]
-        summary_data = []
-        for r in recent_results:
-            summary_data.append({
-                "target": r.target.name if r.target else "系统",
-                "ping": round(r.ping_time or 0, 1),
-                "loss": round(r.packet_loss or 0, 1),
-                "http": round(r.http_response_time or 0, 1),
-                "dns": round(r.dns_resolve_time or 0, 2),
-                "jitter": round(r.network_jitter or 0, 2),
-                "retrans": round(r.tcp_retransmit_rate or 0, 3),
-                "status": r.status,
-                "time": r.timestamp.strftime("%H:%M")
-            })
+        summary_data = [{
+            "target": r.target.name if r.target else "系统",
+            "ping": round(r.ping_time or 0, 1),
+            "loss": round(r.packet_loss or 0, 1),
+            "http": round(r.http_response_time or 0, 1),
+            "dns": round(r.dns_resolve_time or 0, 2),
+            "jitter": round(r.network_jitter or 0, 2),
+            "retrans": round(r.tcp_retransmit_rate or 0, 3),
+            "status": r.status,
+            "time": r.timestamp.strftime("%H:%M")
+        } for r in recent_results]
 
         data_str = json.dumps(summary_data[-20:], ensure_ascii=False, separators=(',', ':'))
 
-        # 系统 Prompt（保持简洁，节省 token）
         system_prompt = """你是一个经验丰富的网络运维专家。请用中文生成极简诊断报告。
 要求：
 - 总长度严格控制在 280 字以内
@@ -95,22 +97,16 @@ def ai_generate_report(request):
 - 每条问题给出1句实用解决建议
 - 语气专业、直接、简洁"""
 
-        user_prompt = f"""最近20条网络监控数据摘要：
-{data_str}
-
-请按要求生成诊断报告。"""
-
-        # 调用 LLM
         client = OpenAI(
             api_key=api_key,
-            base_url=config.base_url if config.base_url else None
+            base_url=config.base_url.strip() if config.base_url and config.base_url.strip() else None
         )
 
         response = client.chat.completions.create(
             model=config.model_name,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": f"最近20条网络监控数据摘要：\n{data_str}\n\n请按要求生成诊断报告。"}
             ],
             temperature=config.temperature,
             max_tokens=config.max_tokens,
@@ -133,24 +129,26 @@ def ai_generate_report(request):
 
 @csrf_exempt
 def save_ai_config(request):
-    """前端保存 AI 配置（模型名称等）"""
+    """保存 AI 配置（新增 api_key 支持）"""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': '只支持 POST 请求'})
 
     try:
         data = json.loads(request.body)
-
-        # 获取或创建配置
         config = AIConfig.objects.filter(is_active=True).first()
         if not config:
             config = AIConfig.objects.create(is_active=True)
 
-        # 更新配置
+        # 保存所有字段
         config.provider = data.get('provider', config.provider)
         config.model_name = data.get('model_name', config.model_name).strip()
         config.base_url = data.get('base_url', config.base_url).strip()
         config.temperature = float(data.get('temperature', config.temperature))
         config.max_tokens = int(data.get('max_tokens', config.max_tokens))
+
+        # 新增：API Key（空字符串转为 None）
+        api_key_input = data.get('api_key', '').strip()
+        config.api_key = api_key_input if api_key_input else None
 
         config.save()
 

@@ -123,6 +123,36 @@
             border: 1px solid rgba(0, 245, 212, 0.4);
             box-shadow: 0 0 20px rgba(0, 245, 212, 0.3);
         }
+                /* 菜单项统一样式优化 */
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 28px;
+            color: #a0f0e8;
+            text-decoration: none;
+            font-size: 15.5px;
+            transition: all 0.2s ease;
+        }
+        .menu-item:hover {
+            background: rgba(0, 245, 212, 0.15);
+            color: #fff;
+            padding-left: 32px;
+        }
+
+        /* 分隔线样式 */
+        .menu-items .h-px {
+            opacity: 0.3;
+        }
+
+        /* 当前激活菜单项（可选，后续可扩展） */
+        .menu-item.active {
+            background: rgba(0, 245, 212, 0.25);
+            color: #fff;
+            border-left: 4px solid #00f5d4;
+        }
+
+
+
 
         {% block extra_style %}{% endblock %}
     </style>
@@ -146,9 +176,13 @@
             <a href="/monitor/jitter/" class="menu-item"><i class="mr-4">📈</i> 网络抖动</a>
             <a href="/monitor/dns/" class="menu-item"><i class="mr-4">🔍</i> DNS 解析时间</a>
             <a href="/monitor/tcp-retrans/" class="menu-item"><i class="mr-4">🔄</i> TCP 重传率</a>
+
+            <!-- 分隔线（视觉上更清晰） -->
+            <div class="h-px bg-cyan-500/20 my-4 mx-6"></div>
+
             <a href="/targets/config/" class="menu-item"><i class="mr-4">⚙️</i> 多目标监控配置</a>
-            <a href="{% url 'ai_analysis' %}" class="menu-item">🤖 AI 智能分析</a>
-            <a class="nav-link" href="/logs/system-logs/">📋 系统日志</a>
+            <a href="{% url 'ai_analysis' %}" class="menu-item"><i class="mr-4">🤖</i> AI 智能分析</a>
+            <a href="/logs/system-logs/" class="menu-item"><i class="mr-4">📋</i> 系统日志</a>
         </div>
     </div>
 

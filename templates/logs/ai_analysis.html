@@ -4,309 +4,276 @@
 
 {% block extra_style %}
 <style>
-    .ai-page {
-        background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%);
-        min-height: 100vh;
-        padding: 2rem 1rem;
-    }
-    .glass-card {
-        background: rgba(255, 255, 255, 0.09);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        border-radius: 24px;
+    .ai-header {
+        background: linear-gradient(135deg, #00f5d4, #7b5eff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
 
-    /* 配置面板 - 悬浮 */
-    .config-panel {
-        position: fixed;
-        top: 50%;
-        right: 80px;
-        transform: translateY(-50%) scale(0.95);
-        width: 420px;
-        z-index: 1000;
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .config-panel.show {
-        transform: translateY(-50%) scale(1);
-        opacity: 1;
-        visibility: visible;
-    }
-
-    .input-field {
-        background: rgba(0, 0, 0, 0.35);
-        border: 1px solid rgba(148, 163, 184, 0.4);
-        transition: all 0.3s;
-    }
-    .input-field:focus {
-        border-color: #22d3ee;
-        box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.25);
-        background: rgba(0, 0, 0, 0.6);
-    }
-
-    /* 生成报告大按钮 */
-    .generate-report-btn {
-        display: block;
-        width: 100%;
-        max-width: 420px;
-        margin: 30px auto 0;
-        padding: 18px 0;
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: white;
-        background: linear-gradient(90deg, #22d3ee, #a855f7, #ec4899);
-        border-radius: 9999px;
-        box-shadow: 0 10px 30px rgba(34, 211, 238, 0.4);
+    .neon-card {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(0, 245, 212, 0.35);
+        box-shadow: 0 0 30px rgba(0, 245, 212, 0.25);
         transition: all 0.4s ease;
-        text-align: center;
-        cursor: pointer;
     }
-    .generate-report-btn:hover {
+    .neon-card:hover {
+        box-shadow: 0 0 45px rgba(0, 245, 212, 0.45);
         transform: translateY(-4px);
-        box-shadow: 0 20px 45px rgba(168, 85, 247, 0.5);
-        background: linear-gradient(90deg, #67e8f9, #c084fc, #f472b6);
     }
 
-    .report-content {
-        white-space: pre-wrap;
-        line-height: 1.85;
+    .report-area {
+        background: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 16px;
+        padding: 28px;
+        min-height: 420px;
+        max-height: 520px;
+        overflow-y: auto;
+        line-height: 1.75;
+        color: #e2e8f0;
+        font-size: 15.5px;
     }
-    .neon-text {
-        text-shadow: 0 0 12px #22d3ee;
+
+    .btn-glow {
+        position: relative;
+        overflow: hidden;
+    }
+    .btn-glow::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 40%;
+        height: 200%;
+        background: linear-gradient(120deg, transparent, rgba(255,255,255,0.4), transparent);
+        transform: skewX(-25deg);
+        transition: left 0.6s;
+    }
+    .btn-glow:hover::before {
+        left: 150%;
+    }
+
+    .config-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.88);
+        z-index: 1100;
+        align-items: center;
+        justify-content: center;
+    }
+    .config-content {
+        background: #0f172a;
+        border: 1px solid #00f5d4;
+        box-shadow: 0 0 40px rgba(0, 245, 212, 0.3);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="ai-page">
-    <div class="max-w-5xl mx-auto">
-        <!-- 标题 -->
-        <div class="text-center mb-12">
-            <h1 class="text-4xl font-bold text-white neon-text flex items-center justify-center gap-3">
-                <span>🤖</span> AI 智能网络诊断
-            </h1>
-            <p class="text-slate-400 mt-3 text-lg">
-                基于实时监控数据 · 瞬间生成专业诊断报告
-            </p>
+<div class="max-w-6xl mx-auto px-6 py-10">
+
+    <!-- 头部 -->
+    <div class="text-center mb-12">
+        <div class="inline-flex items-center gap-4 mb-4">
+            <div class="text-6xl">🤖</div>
+            <h1 class="text-5xl font-bold ai-header tracking-tighter">AI 智能分析</h1>
+        </div>
+        <p class="text-xl text-[#88f0e0] max-w-lg mx-auto">
+            基于实时监控数据与系统日志 · 瞬间生成专业运维诊断报告
+        </p>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="flex flex-wrap justify-center gap-6 mb-12">
+        <button onclick="generateReport('monitor')"
+                class="btn-glow px-10 py-5 rounded-2xl text-lg font-semibold flex items-center gap-3 bg-gradient-to-r from-cyan-400 to-teal-400 text-black hover:scale-105 transition-all">
+            <span class="text-2xl">📊</span>
+            分析监控数据
+        </button>
+
+        <button onclick="generateReport('logs')"
+                class="btn-glow px-10 py-5 rounded-2xl text-lg font-semibold flex items-center gap-3 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white hover:scale-105 transition-all">
+            <span class="text-2xl">📋</span>
+            分析系统日志
+        </button>
+    </div>
+
+    <!-- 报告展示卡片 -->
+    <div class="neon-card rounded-3xl p-8">
+        <div class="flex justify-between items-center mb-6 border-b border-cyan-900 pb-4">
+            <h2 id="reportTitle" class="text-2xl font-semibold text-white">AI 诊断报告</h2>
+            <div id="modelInfo" class="text-sm text-cyan-300 font-mono"></div>
         </div>
 
-        <!-- 报告区域 -->
-        <div class="max-w-3xl mx-auto">
-            <div id="analyzing" class="glass-card rounded-3xl p-12 hidden text-center">
-                <div class="flex flex-col items-center justify-center py-16">
-                    <div class="w-20 h-20 border-4 border-t-cyan-400 border-slate-700 rounded-full animate-spin mb-8"></div>
-                    <p class="text-xl text-slate-300">AI 正在深度思考网络状况...</p>
-                    <p class="text-sm text-slate-500 mt-3">这可能需要几秒钟</p>
-                </div>
-            </div>
+        <!-- 加载状态 -->
+        <div id="loading" class="hidden flex flex-col items-center justify-center py-24">
+            <div class="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mb-6"></div>
+            <p class="text-cyan-300 text-lg">AI 正在深度分析网络状况...</p>
+            <p class="text-gray-500 text-sm mt-2">这可能需要几秒钟</p>
+        </div>
 
-            <div id="report-card" class="glass-card rounded-3xl p-10 hidden">
-                <div class="flex items-center justify-between mb-6 border-b border-slate-700 pb-5">
-                    <h3 class="text-2xl font-semibold text-white">📋 AI 诊断报告</h3>
-                    <span id="model-badge" class="px-5 py-1.5 bg-slate-800 text-cyan-400 text-sm rounded-full"></span>
-                </div>
-                <div id="report-text" class="report-content text-slate-200 text-[15.8px] leading-relaxed min-h-[340px]"></div>
-            </div>
-
-            <!-- 默认提示 -->
-            <div id="empty-state" class="glass-card rounded-3xl p-16 text-center">
-                <div class="mx-auto w-24 h-24 bg-slate-800 rounded-3xl flex items-center justify-center text-6xl mb-8">🤖</div>
-                <h3 class="text-2xl text-white mb-4">准备好进行智能诊断了吗？</h3>
-                <p class="text-slate-400 max-w-md mx-auto">
-                    先点击右下角 ⚙️ 配置 AI 参数<br>
-                    再点击下方按钮生成诊断报告
-                </p>
-            </div>
-
-            <!-- 生成诊断报告按钮 -->
-            <button onclick="generateReport()" class="generate-report-btn">
-                🚀 生成 AI 诊断报告
-            </button>
+        <!-- 报告内容 -->
+        <div id="reportArea" class="report-area">
+            点击上方按钮，让 AI 为你生成专业诊断报告
         </div>
     </div>
 
-    <!-- AI 配置中心（悬浮面板） -->
-    <div id="config-panel" class="config-panel glass-card p-9">
-        <div class="flex justify-between items-center mb-7">
-            <h2 class="text-2xl font-semibold text-white flex items-center gap-2">
-                ⚙️ AI 配置中心
-            </h2>
-            <button onclick="toggleConfigPanel()" class="text-3xl text-slate-400 hover:text-white leading-none">×</button>
-        </div>
-
-        <div class="space-y-6">
-            <div>
-                <label class="block text-sm text-slate-400 mb-2">提供商</label>
-                <select id="provider" onchange="updateDefaults()"
-                        class="input-field w-full px-5 py-4 rounded-2xl text-white focus:outline-none">
-                    <option value="deepseek" selected>DeepSeek</option>
-                    <option value="qwen">通义千问 (Qwen)</option>
-                    <option value="openai">OpenAI</option>
-                    <option value="groq">Groq</option>
-                    <option value="custom">自定义兼容接口</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm text-slate-400 mb-2">模型名称</label>
-                <input type="text" id="model_name" value="{{ ai_config.model_name|default:'deepseek-chat' }}"
-                       class="input-field w-full px-5 py-4 rounded-2xl text-white">
-            </div>
-
-            <div>
-                <label class="block text-sm text-slate-400 mb-2">
-                    API Key <span class="text-xs text-emerald-400">(留空则使用 .env)</span>
-                </label>
-                <input type="password" id="api_key" value="{{ ai_config.api_key|default:'' }}"
-                       placeholder="sk-..." class="input-field w-full px-5 py-4 rounded-2xl text-white">
-            </div>
-
-            <div>
-                <label class="block text-sm text-slate-400 mb-2">Base URL（可选）</label>
-                <input type="text" id="base_url" value="{{ ai_config.base_url|default:'' }}"
-                       class="input-field w-full px-5 py-4 rounded-2xl text-white">
-            </div>
-
-            <div class="grid grid-cols-2 gap-5">
-                <div>
-                    <label class="block text-sm text-slate-400 mb-2">Temperature</label>
-                    <input type="number" id="temperature" value="{{ ai_config.temperature|default:0.3 }}" step="0.1" min="0" max="1"
-                           class="input-field w-full px-5 py-4 rounded-2xl text-white">
-                </div>
-                <div>
-                    <label class="block text-sm text-slate-400 mb-2">最大 Tokens</label>
-                    <input type="number" id="max_tokens" value="{{ ai_config.max_tokens|default:400 }}"
-                           class="input-field w-full px-5 py-4 rounded-2xl text-white">
-                </div>
-            </div>
-        </div>
-
-        <div class="mt-10">
-            <button onclick="saveConfig()"
-                    class="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-4 rounded-2xl transition-all">
-                💾 保存配置
-            </button>
-        </div>
-    </div>
-
-    <!-- 右下角悬浮配置按钮 -->
-    <div onclick="toggleConfigPanel()"
-         class="fixed bottom-8 right-8 w-16 h-16 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center text-3xl shadow-2xl cursor-pointer transition-all hover:scale-110 z-[999]"
-         title="AI 配置">
+    <!-- 配置按钮（右下角固定） -->
+    <button onclick="showConfigModal()"
+            class="fixed bottom-8 right-8 w-14 h-14 bg-zinc-900 border-2 border-cyan-400 rounded-full flex items-center justify-center text-2xl shadow-2xl hover:scale-110 transition-all z-50">
         ⚙️
+    </button>
+
+    <!-- 配置弹窗 -->
+    <div id="configModal" class="config-modal">
+        <div class="config-content w-full max-w-md mx-4 rounded-3xl p-8">
+            <h3 class="text-2xl font-bold text-white mb-8">AI 配置中心</h3>
+
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1.5">提供商</label>
+                    <select id="provider" onchange="autoFillBaseURL()"
+                            class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-white focus:outline-none focus:border-cyan-400">
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="qwen" selected>通义千问 (Qwen)</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="groq">Groq</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1.5">模型名称</label>
+                    <input id="model_name" type="text" value="qwen-plus"
+                           class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-white focus:outline-none focus:border-cyan-400">
+                </div>
+
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1.5">API Key（留空使用 .env）</label>
+                    <input id="api_key" type="password" placeholder="sk-..."
+                           class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-white focus:outline-none focus:border-cyan-400">
+                </div>
+
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1.5">Base URL</label>
+                    <input id="base_url" type="text"
+                           class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-white focus:outline-none focus:border-cyan-400">
+                </div>
+            </div>
+
+            <div class="flex gap-4 mt-10">
+                <button onclick="saveConfig()"
+                        class="flex-1 py-4 bg-emerald-500 hover:bg-emerald-600 rounded-2xl font-bold text-lg">
+                    保存配置
+                </button>
+                <button onclick="hideConfigModal()"
+                        class="flex-1 py-4 bg-zinc-700 hover:bg-zinc-600 rounded-2xl font-bold text-lg">
+                    取消
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_script %}
 <script>
-function toggleConfigPanel() {
-    const panel = document.getElementById('config-panel');
-    panel.classList.toggle('show');
-}
-
-function updateDefaults() {
+// 自动填充 Base URL
+function autoFillBaseURL() {
     const provider = document.getElementById('provider').value;
-    const model = document.getElementById('model_name');
-    const baseUrl = document.getElementById('base_url');
+    const baseUrlInput = document.getElementById('base_url');
+    const modelInput = document.getElementById('model_name');
 
-    if (provider === 'deepseek') {
-        model.value = 'deepseek-chat';
-        baseUrl.value = 'https://api.deepseek.com';
-    } else if (provider === 'qwen') {
-        model.value = 'qwen-turbo';
-        baseUrl.value = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
-    } else if (provider === 'openai') {
-        model.value = 'gpt-4o-mini';
-        baseUrl.value = 'https://api.openai.com/v1';
-    } else if (provider === 'groq') {
-        model.value = 'llama3-70b-8192';
-        baseUrl.value = 'https://api.groq.com/openai/v1';
-    } else if (provider === 'custom') {
-        model.value = '';
-        baseUrl.value = '';
+    switch(provider) {
+        case 'deepseek':
+            baseUrlInput.value = 'https://api.deepseek.com';
+            modelInput.value = 'deepseek-chat';
+            break;
+        case 'qwen':
+            baseUrlInput.value = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+            modelInput.value = 'qwen-plus';
+            break;
+        case 'openai':
+            baseUrlInput.value = 'https://api.openai.com/v1';
+            modelInput.value = 'gpt-4o-mini';
+            break;
+        case 'groq':
+            baseUrlInput.value = 'https://api.groq.com/openai/v1';
+            modelInput.value = 'llama-3.3-70b-versatile';
+            break;
     }
 }
 
+// 显示/隐藏配置弹窗
+function showConfigModal() {
+    document.getElementById('configModal').style.display = 'flex';
+    autoFillBaseURL();
+}
+
+function hideConfigModal() {
+    document.getElementById('configModal').style.display = 'none';
+}
+
+// 保存配置
 async function saveConfig() {
     const data = {
         provider: document.getElementById('provider').value,
         model_name: document.getElementById('model_name').value.trim(),
         api_key: document.getElementById('api_key').value.trim(),
-        base_url: document.getElementById('base_url').value.trim(),
-        temperature: parseFloat(document.getElementById('temperature').value) || 0.3,
-        max_tokens: parseInt(document.getElementById('max_tokens').value) || 400,
+        base_url: document.getElementById('base_url').value.trim()
     };
 
     try {
         const res = await fetch('/logs/api/save-ai-config/', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
         const result = await res.json();
-
-        alert(result.message || result.error || '✅ 配置保存成功！');
         if (result.success) {
-            toggleConfigPanel();
+            alert('✅ 配置保存成功！');
+            hideConfigModal();
+        } else {
+            alert('❌ ' + (result.message || result.error));
         }
     } catch (e) {
-        alert('保存失败，请检查网络');
+        alert('网络错误，请稍后重试');
     }
 }
 
-async function generateReport() {
-    const analyzing = document.getElementById('analyzing');
-    const reportCard = document.getElementById('report-card');
-    const emptyState = document.getElementById('empty-state');
+// 生成报告
+async function generateReport(type) {
+    const loading = document.getElementById('loading');
+    const reportArea = document.getElementById('reportArea');
+    const reportTitle = document.getElementById('reportTitle');
 
-    analyzing.classList.remove('hidden');
-    reportCard.classList.add('hidden');
-    emptyState.classList.add('hidden');
+    loading.classList.remove('hidden');
+    reportArea.innerHTML = '';
+
+    const url = type === 'monitor' ? '/logs/api/ai-report/' : '/logs/api/ai-analyze-logs/';
 
     try {
-        const res = await fetch('/logs/api/ai-report/', {
-            method: 'POST',                    // ← 确保是 POST
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrfToken()   // ← 改进 CSRF 获取方式
-            }
-        });
+        const res = await fetch(url, { method: 'POST' });
+        const json = await res.json();
 
-        const result = await res.json();
+        loading.classList.add('hidden');
 
-        analyzing.classList.add('hidden');
-
-        if (result.success) {
-            document.getElementById('report-text').innerHTML =
-                result.report.replace(/\n/g, '<br><br>');
-            document.getElementById('model-badge').textContent =
-                result.model_used || 'AI 模型';
-            reportCard.classList.remove('hidden');
+        if (json.success) {
+            reportTitle.textContent = type === 'monitor' ? '监控数据诊断报告' : '系统日志诊断报告';
+            document.getElementById('modelInfo').textContent = json.model_used || '';
+            reportArea.innerHTML = json.report.replace(/\n/g, '<br>');
         } else {
-            alert('生成失败：' + (result.error || '未知错误'));
-            emptyState.classList.remove('hidden');
+            reportArea.innerHTML = `<p class="text-red-400 text-center py-10">❌ ${json.error || '生成失败'}</p>`;
         }
     } catch (e) {
-        analyzing.classList.add('hidden');
-        console.error(e);
-        alert('请求失败，请检查网络或 API Key 配置');
-        emptyState.classList.remove('hidden');
+        loading.classList.add('hidden');
+        reportArea.innerHTML = `<p class="text-red-400 text-center py-10">❌ 请求失败，请检查配置</p>`;
     }
 }
 
-// 辅助函数：更可靠地获取 CSRF Token
-function getCsrfToken() {
-    return document.querySelector('[name=csrfmiddlewaretoken]')?.value
-           || document.cookie.split('; ')
-              .find(row => row.startsWith('csrftoken='))
-              ?.split('=')[1]
-           || '';
-}
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+    autoFillBaseURL();
+});
 </script>
 {% endblock %}

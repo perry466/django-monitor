@@ -5,12 +5,15 @@ from .views import (
     save_ai_config,
     system_logs,
     get_system_logs,
+    ai_analyze_logs
 
 )
 app_name = 'logs'
 
 urlpatterns = [
     path('api/ai-report/', ai_generate_report, name='ai_generate_report'),
+    path('api/ai-analyze-logs/', ai_analyze_logs, name='ai_analyze_logs'),
+
     path('api/save-ai-config/', save_ai_config, name='save_ai_config'),
 
     # 系统日志

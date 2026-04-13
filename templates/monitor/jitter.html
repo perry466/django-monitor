@@ -22,7 +22,6 @@
         text-shadow: 0 0 15px #00f5d4;
     }
 
-    /* 自然风格的刷新按钮 */
     .refresh-btn {
         background: rgba(0, 245, 212, 0.08);
         border: 2px solid #00f5d4;
@@ -52,7 +51,7 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-6 py-8">
 
-    <!-- 标题栏（已删除最后更新时间） -->
+    <!-- 标题栏 -->
     <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-6">
         <div class="flex items-center gap-4">
             <div class="text-5xl">🌊</div>
@@ -62,9 +61,7 @@
             </div>
         </div>
         <div>
-            <!-- 立即刷新按钮 -->
-            <button onclick="refreshJitter()"
-                    class="refresh-btn">
+            <button onclick="refreshJitter()" class="refresh-btn">
                 <span class="text-lg">🔄</span>
                 立即刷新
             </button>
@@ -107,7 +104,8 @@
             <h2 class="text-xl font-semibold text-white">📈 抖动趋势（最近 60 分钟）</h2>
             <div class="text-xs text-gray-400">数值越高波动越大</div>
         </div>
-        <div style="height: 380px;">
+        <!-- 使用更稳定的高度写法 -->
+        <div class="h-[420px] w-full">
             <canvas id="jitterChart"></canvas>
         </div>
     </div>
@@ -127,36 +125,70 @@
 
 <script>
 let chartInstance = null;
-let historyData = Array(60).fill(0);
+
+function createTimeLabels(count = 60) {
+    const labels = [];
+    const now = new Date();
+    for (let i = count - 1; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 60 * 1000);
+        labels.push(`${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`);
+    }
+    return labels;
+}
 
 function initChart() {
     const ctx = document.getElementById('jitterChart');
+    if (!ctx) return;
+
     chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: Array(60).fill(''),
+            labels: createTimeLabels(60),
             datasets: [{
-                label: '抖动 (ms)',
-                data: historyData,
+                label: '网络抖动 (ms)',
+                data: Array(60).fill(0),
                 borderColor: '#00f5d4',
-                backgroundColor: 'rgba(0, 245, 212, 0.18)',
-                tension: 0.4,
-                borderWidth: 3,
+                backgroundColor: 'rgba(0, 245, 212, 0.22)',
+                tension: 0.35,
+                borderWidth: 3.5,
+                pointRadius: 2.5,
+                pointHoverRadius: 6,
                 fill: true
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            animation: { duration: 800 },
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: { color: '#a0f0e8', font: { size: 13 } }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(15,23,42,0.95)',
+                    titleColor: '#00f5d4'
+                }
+            },
             scales: {
                 y: {
                     min: 0,
-                    ticks: { color: '#94a3b8', callback: v => v + 'ms' },
+                    suggestedMax: 30,
+                    ticks: {
+                        color: '#94a3b8',
+                        callback: v => v + ' ms',
+                        stepSize: 5
+                    },
                     grid: { color: '#334155' }
                 },
                 x: {
-                    ticks: { display: false },
+                    ticks: {
+                        color: '#94a3b8',
+                        maxTicksLimit: 12,
+                        maxRotation: 0
+                    },
                     grid: { color: '#334155' }
                 }
             }
@@ -167,7 +199,6 @@ function initChart() {
 async function refreshJitter() {
     const btn = document.querySelector('.refresh-btn');
     const originalHTML = btn.innerHTML;
-
     btn.innerHTML = `<span class="animate-spin inline-block mr-2">⟳</span>刷新中...`;
     btn.disabled = true;
 
@@ -175,32 +206,46 @@ async function refreshJitter() {
         const res = await fetch('/monitor/api/multi-jitter/');
         const json = await res.json();
 
-        if (json.code === 0 && json.data?.results?.length > 0) {
-            const current = parseFloat(json.data.results[0].jitter) || 0;
+        if (json.code === 0 && json.data) {
+            // 当前抖动
+            const current = parseFloat(json.data.results?.[0]?.jitter || 0);
             document.getElementById('currentJitter').textContent = current.toFixed(1);
 
-            if (json.data.history?.datasets?.length > 0) {
-                const newData = json.data.history.datasets[0].data || [];
-                historyData = newData.slice(-60);
+            let chartData = [];
+            let chartLabels = [];
+
+            // 优先使用后端返回的历史数据
+            if (json.data.history?.datasets?.[0]?.data?.length) {
+                chartData = json.data.history.datasets[0].data.slice(-60);
+                chartLabels = json.data.history.labels ?
+                              json.data.history.labels.slice(-60) :
+                              createTimeLabels(chartData.length);
             } else {
-                historyData.shift();
-                historyData.push(current);
+                // 降级处理
+                chartData = Array(59).fill(0);
+                chartData.push(current);
+                chartLabels = createTimeLabels(60);
             }
 
+            // 更新图表
             if (chartInstance) {
-                chartInstance.data.datasets[0].data = historyData;
-                const maxY = Math.max(...historyData, 20);
-                chartInstance.options.scales.y.max = Math.ceil(maxY * 1.3);
+                chartInstance.data.labels = chartLabels;
+                chartInstance.data.datasets[0].data = chartData;
+
+                const maxVal = Math.max(...chartData, 15);
+                chartInstance.options.scales.y.suggestedMax = Math.ceil(maxVal * 1.4);
                 chartInstance.update('none');
             }
 
-            const peak = Math.max(...historyData);
-            const avg = historyData.reduce((a,b) => a + b, 0) / historyData.length;
+            // 更新统计卡片
+            const peak = Math.max(...chartData, 0);
+            const avg = chartData.length ? chartData.reduce((a, b) => a + b, 0) / chartData.length : 0;
 
             document.getElementById('peakJitter').textContent = peak.toFixed(1);
             document.getElementById('avgJitter').textContent = avg.toFixed(1);
-            document.getElementById('stability').textContent = Math.max(0, Math.round(100 - avg * 3)) + '%';
+            document.getElementById('stability').textContent = Math.max(0, Math.round(100 - avg * 3.5)) + '%';
 
+            // 状态文字
             const statusEl = document.getElementById('statusText');
             if (current < 10) {
                 statusEl.innerHTML = `<span class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></span> 网络稳定`;
@@ -224,8 +269,8 @@ async function refreshJitter() {
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
     initChart();
-    refreshJitter();
-    setInterval(refreshJitter, 60000);
+    refreshJitter();                    // 页面加载立即刷新一次
+    setInterval(refreshJitter, 60000);  // 每分钟自动刷新
 });
 </script>
 {% endblock %}

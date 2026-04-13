@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+
+{% block title %}系统日志 - NEON MONITOR{% endblock %}
+
+{% block extra_style %}
+<style>
+    .logs-page {
+        background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%);
+        height: 100vh;
+        color: #e2e8f0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .header-bar {
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid #334155;
+        padding: 1.2rem 1.8rem;
+        flex-shrink: 0;
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 2rem;
+    }
+
+    .title-section h2 {
+        margin: 0;
+        font-weight: 700;
+    }
+
+    .title-section p {
+        margin: 0;
+        color: #94a3b8;
+        font-size: 0.95rem;
+    }
+
+    .filter-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .filter-section select,
+    .filter-section button {
+        height: 42px;
+        border-radius: 10px;
+    }
+
+    .filter-section .form-select {
+        background: #334155;
+        color: #e2e8f0;
+        border: 1px solid #475569;
+        min-width: 160px;
+    }
+
+    .logs-content {
+        flex: 1;
+        padding: 1rem 1.8rem;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .log-card {
+        background: #1e2937;
+        border: 1px solid #334155;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .table-wrapper {
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .log-table th {
+        background: #334155;
+        color: #94a3b8;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        padding: 14px 12px;
+    }
+
+    .log-table td {
+        padding: 14px 12px;
+        color: #cbd5e1;
+        border-bottom: 1px solid #334155;
+    }
+
+    .log-result {
+        font-family: 'Consolas', monospace;
+        font-size: 0.9em;
+        line-height: 1.45;
+        color: #94a3b8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .type-badge {
+        padding: 6px 14px;
+        border-radius: 50px;
+        font-size: 0.82rem;
+        font-weight: 500;
+    }
+
+    .ping-badge    { background: #22d3ee; color: #0f172a; }
+    .http-badge    { background: #a855f7; color: white; }
+    .dns-badge     { background: #eab308; color: #0f172a; }
+    .jitter-badge  { background: #f97316; color: white; }
+    .tcp-badge     { background: #ef4444; color: white; }
+
+    /* 分页栏样式 */
+    .footer-bar {
+        background: #1e2937;
+        border-top: 1px solid #334155;
+        padding: 16px 1.8rem;
+        flex-shrink: 0;
+    }
+
+    .pagination {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .pagination .page-link {
+        background: #334155;
+        color: #cbd5e1;
+        border: 1px solid #475569;
+        padding: 10px 18px;
+        min-width: 46px;
+        text-align: center;
+        border-radius: 12px;
+        font-size: 0.95rem;
+    }
+
+    .pagination .page-item.active .page-link {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+        font-weight: 600;
+    }
+
+    .pagination .page-link:hover:not(.disabled) {
+        background: #475569;
+        color: white;
+    }
+
+    .disabled .page-link {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* 跳转组件 - 放在页码组中间（省略号和尾页之间） */
+    .jump-to-page {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: #334155;
+        padding: 6px 12px;
+        border-radius: 12px;
+        border: 1px solid #475569;
+        margin: 0 8px;
+    }
+
+    .jump-to-page input {
+        width: 68px;
+        background: #1e2937;
+        border: 1px solid #475569;
+        color: #e2e8f0;
+        text-align: center;
+        border-radius: 8px;
+        padding: 6px 8px;
+        font-size: 0.95rem;
+    }
+
+    .jump-to-page button {
+        padding: 6px 14px;
+        font-size: 0.9rem;
+        border-radius: 8px;
+    }
+
+    .page-info {
+        color: #94a3b8;
+        font-size: 0.9rem;
+        margin-top: 8px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="logs-page">
+
+    <!-- 顶部标题栏 + 过滤控件 -->
+    <div class="header-bar">
+        <div class="header-content">
+            <div class="title-section">
+                <h2 class="text-white">📊 系统监控日志</h2>
+                <p class="text-slate-400">实时原始监控记录 · 一屏显示</p>
+            </div>
+
+            <div class="filter-section">
+                <select id="log_type" class="form-select">
+                    <option value="all">全部监控</option>
+                    <option value="ping">Ping & 丢包率</option>
+                    <option value="http">HTTP响应时间</option>
+                    <option value="dns">DNS解析时间</option>
+                    <option value="jitter">网络抖动</option>
+                    <option value="tcp_retrans">TCP重传率</option>
+                </select>
+
+                <select id="period" class="form-select" onchange="toggleCustomDate()">
+                    <option value="all">全部日志</option>
+                    <option value="today">今日</option>
+                    <option value="7days">近 7 天</option>
+                    <option value="30days">近 30 天</option>
+                    <option value="custom">自定义范围</option>
+                </select>
+
+                <div id="custom_date" style="display:none; display:flex; gap:8px; align-items:center;">
+                    <input type="date" id="start_date" class="form-control" style="width:140px;">
+                    <input type="date" id="end_date" class="form-control" style="width:140px;">
+                </div>
+
+                <button onclick="loadLogs(1)" class="btn btn-primary px-4 rounded-pill">
+                    查询
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 中间日志列表区 -->
+    <div class="logs-content">
+        <div class="log-card flex-grow-1">
+            <div class="table-wrapper">
+                <table class="table log-table mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 18%;">时间</th>
+                            <th style="width: 17%;">目标</th>
+                            <th style="width: 16%;">类型</th>
+                            <th style="width: 10%;">状态</th>
+                            <th>原始监控数据</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log_table_body" class="text-slate-300"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部分页栏（跳转组件放在页码组中间） -->
+    <div class="footer-bar">
+        <div class="d-flex justify-content-center align-items-center">
+            <nav>
+                <ul class="pagination mb-0" id="pagination"></ul>
+            </nav>
+        </div>
+        <div class="page-info" id="page-info"></div>
+    </div>
+
+</div>
+
+<!-- 详情弹窗 -->
+<div class="modal fade" id="logModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-white">原始监控详情</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="full_log_content" class="bg-black text-emerald-300 p-4 rounded-3"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+let currentPage = 1;
+let totalPages = 1;
+
+function toggleCustomDate() {
+    document.getElementById('custom_date').style.display =
+        document.getElementById('period').value === 'custom' ? 'flex' : 'none';
+}
+
+async function loadLogs(page = 1) {
+    currentPage = page;
+    const log_type = document.getElementById('log_type').value;
+    const period = document.getElementById('period').value;
+    const start_date = document.getElementById('start_date').value;
+    const end_date = document.getElementById('end_date').value;
+
+    let url = `/logs/api/system-logs/?page=${page}&per_page=10&log_type=${log_type}&period=${period}`;
+    if (period === 'custom' && start_date && end_date) {
+        url += `&start_date=${start_date}&end_date=${end_date}`;
+    }
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!data.success) {
+            alert(data.error || '加载失败');
+            return;
+        }
+
+        totalPages = data.total_pages || 1;
+
+        let html = '';
+        data.logs.forEach(log => {
+            let typeClass = 'type-badge';
+            if (log.log_type.includes('ping')) typeClass += ' ping-badge';
+            else if (log.log_type.includes('http')) typeClass += ' http-badge';
+            else if (log.log_type.includes('dns')) typeClass += ' dns-badge';
+            else if (log.log_type.includes('jitter')) typeClass += ' jitter-badge';
+            else if (log.log_type.includes('tcp')) typeClass += ' tcp-badge';
+
+            html += `
+                <tr onclick="showLogDetail('${log.full_result.replace(/'/g, "\\'")}')" style="cursor: pointer;">
+                    <td>${log.created_at}</td>
+                    <td><strong>${log.target}</strong></td>
+                    <td><span class="${typeClass}">${log.log_type}</span></td>
+                    <td><span class="level-info">✅ 正常</span></td>
+                    <td class="log-result">${log.result}</td>
+                </tr>`;
+        });
+
+        document.getElementById('log_table_body').innerHTML =
+            html || '<tr><td colspan="5" class="text-center py-5 text-slate-400">暂无监控记录</td></tr>';
+
+        renderPagination(totalPages, page);
+        document.getElementById('page-info').textContent = `第 ${page} 页 / 共 ${totalPages} 页`;
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function showLogDetail(content) {
+    document.getElementById('full_log_content').textContent = content;
+    new bootstrap.Modal(document.getElementById('logModal')).show();
+}
+
+// 横向分页 + 跳转组件放在页码组中间
+function renderPagination(totalPages, current) {
+    let html = '';
+
+    // 上一页
+    html += `<li class="page-item ${current <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadLogs(${current-1}); return false;">← 上一页</a>
+             </li>`;
+
+    const maxVisible = 9;
+    let start = Math.max(1, current - 4);
+    let end = Math.min(totalPages, start + maxVisible - 1);
+
+    if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+
+    if (start > 1) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="loadLogs(1); return false;">1</a></li>`;
+        if (start > 2) html += `<li class="page-item disabled"><span class="page-link">⋯</span></li>`;
+    }
+
+    for (let i = start; i <= end; i++) {
+        html += `<li class="page-item ${i === current ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="loadLogs(${i}); return false;">${i}</a>
+                 </li>`;
+    }
+
+    if (end < totalPages) {
+        if (end < totalPages - 1) html += `<li class="page-item disabled"><span class="page-link">⋯</span></li>`;
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="loadLogs(${totalPages}); return false;">${totalPages}</a></li>`;
+    }
+
+    // ==================== 跳转组件放在这里（页码组中间） ====================
+    html += `
+        <li style="margin: 0 8px;">
+            <div class="jump-to-page">
+                <input type="number" id="jump_page" min="1" placeholder="页"
+                       onkeypress="if(event.key === 'Enter') jumpToPage()">
+                <button onclick="jumpToPage()" class="btn btn-sm btn-outline-light">Go</button>
+            </div>
+        </li>`;
+
+    // 下一页
+    html += `<li class="page-item ${current >= totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadLogs(${current+1}); return false;">下一页 →</a>
+             </li>`;
+
+    document.getElementById('pagination').innerHTML = html;
+}
+
+// 自定义页面跳转
+function jumpToPage() {
+    const input = document.getElementById('jump_page');
+    let page = parseInt(input.value);
+
+    if (isNaN(page) || page < 1) {
+        alert("请输入有效的页码");
+        input.value = '';
+        return;
+    }
+
+    if (page > totalPages) {
+        alert(`最大页码为 ${totalPages}`);
+        page = totalPages;
+    }
+
+    loadLogs(page);
+    input.value = '';
+}
+
+window.onload = () => loadLogs(1);
+</script>
+{% endblock %}

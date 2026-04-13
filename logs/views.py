@@ -4,10 +4,15 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 import os
-from openai import OpenAI
-from .models import AIConfig
-from monitor.models import MonitorResult   # 注意：这里仍然从 monitor 取监控数据
+from datetime import datetime, timedelta
+from django.utils import timezone
 
+from openai import OpenAI
+
+# ==================== 正确导入模型 ====================
+from .models import AIConfig, MonitorLog
+from monitor.models import MonitorResult
+# ===================================================
 
 def ai_analysis(request):
     """AI 智能分析页面"""
@@ -68,7 +73,6 @@ def ai_generate_report(request):
 
         data_str = json.dumps(summary_data[-20:], ensure_ascii=False, separators=(',', ':'))
 
-        # ==================== 优化后的系统 Prompt ====================
         system_prompt = """你是一位经验丰富、专业严谨的网络运维专家。请基于监控数据生成一份有深度但简洁的中文诊断报告。
 
 严格按照以下格式输出：
@@ -154,3 +158,106 @@ def save_ai_config(request):
             'success': False,
             'message': f'保存失败: {str(e)}'
         })
+
+
+# ====================== 系统日志功能 ======================
+def system_logs(request):
+    """系统日志主页面"""
+    return render(request, 'logs/system_logs.html')
+
+
+@csrf_exempt
+def get_system_logs(request):
+    """系统日志 - 直接从 MonitorResult 读取原始监控数据（适配当前前端）"""
+    if request.method != 'GET':
+        return JsonResponse({'success': False, 'error': '只支持GET请求'}, status=405)
+
+    try:
+        log_type = request.GET.get('log_type', 'all')   # all, ping, http, dns, jitter, tcp_retrans
+        period = request.GET.get('period', 'all')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        page = int(request.GET.get('page', 1))
+        per_page = int(request.GET.get('per_page', 50))
+
+        queryset = MonitorResult.objects.select_related('target').order_by('-timestamp')
+
+        # 根据前端选择的类型过滤
+        if log_type != 'all':
+            if log_type == 'ping':
+                queryset = queryset.filter(ping_time__isnull=False)
+            elif log_type == 'http':
+                queryset = queryset.filter(http_response_time__isnull=False)
+            elif log_type == 'dns':
+                queryset = queryset.filter(dns_resolve_time__isnull=False)
+            elif log_type == 'jitter':
+                queryset = queryset.filter(network_jitter__isnull=False)
+            elif log_type == 'tcp_retrans':
+                queryset = queryset.filter(tcp_retransmit_rate__isnull=False)
+
+        # 时间范围过滤
+        now = timezone.now()
+        if period == 'today':
+            queryset = queryset.filter(timestamp__date=now.date())
+        elif period == '7days':
+            queryset = queryset.filter(timestamp__gte=now - timedelta(days=7))
+        elif period == '30days':
+            queryset = queryset.filter(timestamp__gte=now - timedelta(days=30))
+        elif period == 'custom' and start_date and end_date:
+            try:
+                start = datetime.strptime(start_date, '%Y-%m-%d')
+                end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+                if (end - start).days > 31:
+                    return JsonResponse({'success': False, 'error': '时间跨度不能超过30天'}, status=400)
+                queryset = queryset.filter(timestamp__range=(start, end))
+            except ValueError:
+                return JsonResponse({'success': False, 'error': '日期格式错误'}, status=400)
+
+        total = queryset.count()
+        start_idx = (page - 1) * per_page
+        results = queryset[start_idx:start_idx + per_page]
+
+        log_list = []
+        for r in results:
+            details = []
+            if r.ping_time is not None:
+                details.append(f"延迟 {r.ping_time:.1f}ms")
+            if r.packet_loss is not None:
+                details.append(f"丢包 {r.packet_loss:.1f}%")
+            if r.http_response_time is not None:
+                details.append(f"HTTP {r.http_response_time:.1f}ms")
+            if r.dns_resolve_time is not None:
+                details.append(f"DNS {r.dns_resolve_time:.2f}ms")
+            if r.network_jitter is not None:
+                details.append(f"抖动 {r.network_jitter:.2f}ms")
+            if r.tcp_retransmit_rate is not None:
+                details.append(f"TCP重传率 {r.tcp_retransmit_rate:.3f}%")
+
+            result_text = " | ".join(details) if details else "无监控数据"
+
+            log_list.append({
+                'id': r.id,
+                'target': r.target.name if r.target else '系统',
+                'created_at': r.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'log_type': log_type if log_type != 'all' else 'monitor',
+                'level': 'INFO',
+                'result': result_text,
+                'full_result': f"目标：{r.target.name if r.target else '系统'}\n"
+                              f"时间：{r.timestamp}\n"
+                              f"状态：{r.status}\n"
+                              f"详细数据：\n{result_text}"
+            })
+
+        return JsonResponse({
+            'success': True,
+            'logs': log_list,
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total + per_page - 1) // per_page if total > 0 else 0
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

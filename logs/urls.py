@@ -1,10 +1,19 @@
 # django-monitor-main/logs/urls.py
 from django.urls import path
-from .views import ai_generate_report, save_ai_config
+from .views import (
+    ai_generate_report,
+    save_ai_config,
+    system_logs,
+    get_system_logs,
 
+)
 app_name = 'logs'
 
 urlpatterns = [
     path('api/ai-report/', ai_generate_report, name='ai_generate_report'),
     path('api/save-ai-config/', save_ai_config, name='save_ai_config'),
+
+    # 系统日志
+    path('system-logs/', system_logs, name='system_logs'),
+    path('api/system-logs/', get_system_logs, name='get_system_logs'),
 ]

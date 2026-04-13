@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}NEON MONITOR{% endblock %}</title>
+
+    <!-- Tailwind CSS CDN（解决仪表盘样式问题） -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap');
 
@@ -13,20 +17,12 @@
             box-sizing: border-box;
         }
 
-        /* 防止 FOUC（页面闪烁） */
-        html {
-            visibility: hidden;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
         body {
             font-family: 'Roboto Mono', monospace;
             background: #0a0e17;
             color: #00f5d4;
             min-height: 100vh;
             overflow-y: auto;
-            position: relative;
         }
 
         /* ====================== 顶部栏 ====================== */
@@ -53,7 +49,7 @@
             color: #88f0e0;
         }
 
-        /* ====================== 侧边栏（GPU 加速优化） ====================== */
+        /* ====================== 侧边栏 ====================== */
         .sidebar {
             position: fixed;
             left: 0;
@@ -62,26 +58,14 @@
             width: 280px;
             background: rgba(15, 23, 42, 0.98);
             border-right: 1px solid #00f5d4;
-            transform: translate3d(-100%, 0, 0);     /* 默认收起 + GPU 加速 */
+            transform: translateX(-100%);
             transition: transform 0.35s cubic-bezier(0.32, 0.72, 0.1, 1);
             z-index: 100;
             padding-top: 80px;
-            will-change: transform;                 /* 关键：GPU 加速 */
             box-shadow: 4px 0 20px rgba(0, 245, 212, 0.15);
         }
-
         .sidebar.show {
-            transform: translate3d(0, 0, 0);
-        }
-
-        .sidebar-header {
-            padding: 0 28px 20px;
-            border-bottom: 1px solid rgba(0, 245, 212, 0.2);
-        }
-        .sidebar-logo {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 24px;
-            color: #00f5d4;
+            transform: translateX(0);
         }
 
         .menu-item {
@@ -97,25 +81,18 @@
             background: rgba(0, 245, 212, 0.15);
             color: #fff;
         }
-        .menu-item i {
-            margin-right: 16px;
-            font-size: 19px;
-            width: 24px;
-        }
 
-        /* ====================== 主内容区 ====================== */
+        /* ====================== 主内容 ====================== */
         .main-content {
             margin-left: 0;
             padding: 32px 40px 40px;
             transition: margin-left 0.35s cubic-bezier(0.32, 0.72, 0.1, 1);
             min-height: calc(100vh - 65px);
         }
-
         .main-content.expanded {
             margin-left: 280px;
         }
 
-        /* ====================== 贴边按钮 ====================== */
         .toggle-btn {
             position: fixed;
             left: 12px;
@@ -134,11 +111,17 @@
             z-index: 200;
             transition: all 0.3s ease;
             box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
-            will-change: transform;
         }
         .toggle-btn:hover {
             background: rgba(0, 245, 212, 0.25);
             transform: scale(1.1);
+        }
+
+        /* 仪表盘专用的霓虹卡片样式（兼容 Tailwind） */
+        .neon-card {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(0, 245, 212, 0.4);
+            box-shadow: 0 0 20px rgba(0, 245, 212, 0.3);
         }
 
         {% block extra_style %}{% endblock %}
@@ -152,18 +135,18 @@
 
     <!-- 侧边栏 -->
     <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-logo">NEON MONITOR</div>
+        <div class="sidebar-header p-6 border-b border-cyan-500/30">
+            <div class="sidebar-logo text-2xl font-bold tracking-widest">NEON MONITOR</div>
         </div>
-        <div class="menu-items">
-            <a href="/" class="menu-item"><i>📊</i> 系统仪表盘</a>
-            <a href="/monitor/ping/" class="menu-item"><i>⚡</i> 延迟测试 (Ping)</a>
-            <a href="/monitor/loss/" class="menu-item"><i>📉</i> 丢包率测试</a>
-            <a href="/monitor/http-response/" class="menu-item"><i>🌐</i> HTTP 响应时间</a>
-            <a href="/monitor/jitter/" class="menu-item"><i>📈</i> 网络抖动</a>
-            <a href="/monitor/dns/" class="menu-item"><i>🔍</i> DNS 解析时间</a>
-            <a href="/monitor/tcp-retrans/" class="menu-item"><i>🔄</i> TCP 重传率</a>
-            <a href="/targets/config/" class="menu-item"><i>⚙️</i> 多目标监控配置</a>
+        <div class="menu-items pt-4">
+            <a href="/" class="menu-item"><i class="mr-4">📊</i> 系统仪表盘</a>
+            <a href="/monitor/ping/" class="menu-item"><i class="mr-4">⚡</i> 延迟测试 (Ping)</a>
+            <a href="/monitor/loss/" class="menu-item"><i class="mr-4">📉</i> 丢包率测试</a>
+            <a href="/monitor/http-response/" class="menu-item"><i class="mr-4">🌐</i> HTTP 响应时间</a>
+            <a href="/monitor/jitter/" class="menu-item"><i class="mr-4">📈</i> 网络抖动</a>
+            <a href="/monitor/dns/" class="menu-item"><i class="mr-4">🔍</i> DNS 解析时间</a>
+            <a href="/monitor/tcp-retrans/" class="menu-item"><i class="mr-4">🔄</i> TCP 重传率</a>
+            <a href="/targets/config/" class="menu-item"><i class="mr-4">⚙️</i> 多目标监控配置</a>
         </div>
     </div>
 
@@ -179,39 +162,27 @@
     </div>
 
     <script>
+        // 侧边栏切换
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('toggle-btn');
         const mainContent = document.getElementById('main-content');
 
-        // 切换侧边栏
         function toggleSidebar() {
             sidebar.classList.toggle('show');
             mainContent.classList.toggle('expanded');
-
             toggleBtn.textContent = sidebar.classList.contains('show') ? '✕' : '☰';
         }
-
         toggleBtn.addEventListener('click', toggleSidebar);
 
-        // 默认收起侧边栏
-        toggleBtn.textContent = '☰';
-
-        // 时间更新
+        // 实时时间
         function updateTime() {
-            const el = document.getElementById('current-time');
-            el.textContent = new Date().toLocaleString('zh-CN', {
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', second: '2-digit'
-            });
+            document.getElementById('current-time').textContent = new Date().toLocaleString('zh-CN');
         }
         setInterval(updateTime, 1000);
         updateTime();
 
-        // 页面加载完成后显示内容（消除 FOUC）
-        window.addEventListener('load', () => {
-            document.documentElement.style.visibility = 'visible';
-            document.documentElement.style.opacity = '1';
-        });
+        // 移除 FOUC 隐藏逻辑（已不再需要）
+        // window.addEventListener('load', () => { ... });  这行可以删掉或保留
     </script>
 
     {% block extra_script %}{% endblock %}

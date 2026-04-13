@@ -4,301 +4,228 @@
 
 {% block extra_style %}
 <style>
-    .max-w-7xl {
-        max-width: 90rem;
-        margin-left: auto;
-        margin-right: auto;
+    .neon-card {
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(0, 245, 212, 0.45);
+        box-shadow: 0 0 20px rgba(0, 245, 212, 0.3);
+        transition: all 0.3s ease;
     }
-    .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
-    .py-10 { padding-top: 2.5rem; padding-bottom: 2.5rem; }
-    .mb-10 { margin-bottom: 2.5rem; }
-    .gap-6 { gap: 1.5rem; }
-    .flex { display: flex; }
-    .flex-col { flex-direction: column; }
-    @media (min-width: 768px) {
-        .md\:flex-row { flex-direction: row; }
-        .md\:items-end { align-items: flex-end; }
+    .neon-card:hover {
+        box-shadow: 0 0 30px rgba(0, 245, 212, 0.5);
+        transform: translateY(-3px);
     }
-    .justify-between { justify-content: space-between; }
-    .items-center { align-items: center; }
-    .gap-5 { gap: 1.25rem; }
-    .gap-4 { gap: 1rem; }
-    .text-6xl { font-size: 3.75rem; line-height: 1; }
-    .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
-    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
-    .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-    .text-2xl { font-size: 1.5rem; line-height: 2rem; }
-    .font-bold { font-weight: 700; }
-    .font-semibold { font-weight: 600; }
-    .font-mono { font-family: 'Roboto Mono', monospace; }
-    .tracking-tight { letter-spacing: -0.025em; }
-    .rounded-2xl { border-radius: 1rem; }
-    .rounded-3xl { border-radius: 1.5rem; }
-    .p-8 { padding: 2rem; }
-    .px-8 { padding-left: 2rem; padding-right: 2rem; }
-    .py-3\.5 { padding-top: 0.875rem; padding-bottom: 0.875rem; }
-    .mb-12 { margin-bottom: 3rem; }
-    .mb-6 { margin-bottom: 1.5rem; }
-    .mt-2 { margin-top: 0.5rem; }
-    .h-80 { height: 20rem; }
-    .bg-yellow-500 { background-color: #eab308; }
-    .bg-zinc-950 { background-color: #0a0a0a; }
-    .bg-zinc-900 { background-color: #18181b; }
-    .text-white { color: #ffffff; }
-    .text-cyan-400 { color: #22d3ee; }
-    .text-gray-400 { color: #9ca3af; }
-    .text-black { color: #000000; }
-    .text-cyan-300 { color: #67e8f9; }
-    .border { border-width: 1px; }
-    .border-zinc-800 { border-color: #27272a; }
-    .border-zinc-900 { border-color: #18181b; }
-    .active\:scale-95:active { transform: scale(0.95); }
-    .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
-    canvas { width: 100% !important; height: 100% !important; }
-
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
-
-    .stat-card {
-        background: linear-gradient(135deg, #1e2937, #334155);
-        border: 1px solid #eab308;
-        padding: 1.5rem;
-        border-radius: 16px;
-        text-align: center;
-    }
-
     .stat-value {
-        font-size: 2rem;
-        font-weight: bold;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.85rem;
+        font-weight: 700;
         color: #00f5d4;
-        margin: 0.5rem 0;
+        text-shadow: 0 0 15px #00f5d4;
     }
 
-    .stat-label {
-        font-size: 0.875rem;
-        color: #94a3b8;
-    }
-
-    .network-status {
+    /* 自然风格的刷新按钮 */
+    .refresh-btn {
+        background: rgba(0, 245, 212, 0.08);
+        border: 2px solid #00f5d4;
+        color: #00f5d4;
+        padding: 12px 28px;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.95rem;
         display: flex;
         align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        margin-top: 0.5rem;
-        font-size: 0.875rem;
-        color: #10b981;
+        gap: 8px;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 15px rgba(0, 245, 212, 0.3);
     }
-
-    .status-indicator {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background-color: #10b981;
+    .refresh-btn:hover {
+        background: rgba(0, 245, 212, 0.15);
+        box-shadow: 0 0 25px rgba(0, 245, 212, 0.6);
+        transform: translateY(-1px);
+        color: #fff;
+    }
+    .refresh-btn:active {
+        transform: scale(0.96);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-6 py-10">
-    <div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
-        <div class="flex items-center gap-5">
-            <div class="text-6xl">🌊</div>
-            <div>
-                <h1 class="text-4xl font-bold text-white tracking-tight">网络抖动监控</h1>
-                <p class="text-cyan-400 mt-2 text-lg">实时监测网络延迟波动 • 直观展示数据包传输稳定性</p>
-            </div>
-        </div>
+<div class="max-w-7xl mx-auto px-6 py-8">
+
+    <!-- 标题栏（已删除最后更新时间） -->
+    <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-6">
         <div class="flex items-center gap-4">
-            <button onclick="refreshJitter()" class="px-8 py-3.5 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-2xl flex items-center gap-3 transition-all active:scale-95">
-                🔄 立即刷新
+            <div class="text-5xl">🌊</div>
+            <div>
+                <h1 class="text-3xl font-bold text-white tracking-tight">网络抖动监控</h1>
+                <p class="text-[#88f0e0] text-base">实时监测延迟波动 • 数据包传输稳定性</p>
+            </div>
+        </div>
+        <div>
+            <!-- 立即刷新按钮 -->
+            <button onclick="refreshJitter()"
+                    class="refresh-btn">
+                <span class="text-lg">🔄</span>
+                立即刷新
             </button>
-            <div id="last-update" class="text-gray-400 text-sm font-mono">最后更新: ——</div>
         </div>
     </div>
 
-    <!-- 状态卡片 -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">当前抖动</div>
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+        <div class="neon-card p-6 rounded-3xl text-center">
+            <div class="text-cyan-300 text-xs tracking-widest mb-1">当前抖动</div>
             <div id="currentJitter" class="stat-value">0.0</div>
-            <div class="network-status">
-                <div class="status-indicator"></div>
-                <span>网络稳定</span>
+            <div id="statusText" class="mt-3 text-emerald-400 text-sm flex items-center justify-center gap-2">
+                <span class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                网络稳定
             </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">峰值抖动</div>
+
+        <div class="neon-card p-6 rounded-3xl text-center">
+            <div class="text-cyan-300 text-xs tracking-widest mb-1">峰值抖动</div>
             <div id="peakJitter" class="stat-value">0.0</div>
-            <div class="stat-label">过去1小时</div>
+            <div class="text-xs text-gray-400 mt-3">最近60分钟</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">平均抖动</div>
+
+        <div class="neon-card p-6 rounded-3xl text-center">
+            <div class="text-cyan-300 text-xs tracking-widest mb-1">平均抖动</div>
             <div id="avgJitter" class="stat-value">0.0</div>
-            <div class="stat-label">过去1小时</div>
+            <div class="text-xs text-gray-400 mt-3">最近60分钟</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">稳定性</div>
+
+        <div class="neon-card p-6 rounded-3xl text-center">
+            <div class="text-cyan-300 text-xs tracking-widest mb-1">稳定性评分</div>
             <div id="stability" class="stat-value">100%</div>
-            <div class="stat-label">网络质量</div>
+            <div id="stabilityLabel" class="text-emerald-400 text-sm mt-3">优秀</div>
         </div>
     </div>
 
-    <!-- 详细趋势图 -->
-    <div class="bg-zinc-950 border border-zinc-800 rounded-3xl p-8 mb-12">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-semibold text-white flex items-center gap-3">
-                📈 抖动趋势分析
-            </h2>
-            <div class="text-sm text-gray-400">
-                最近1小时 • 每分钟更新
-            </div>
+    <!-- 趋势图 -->
+    <div class="bg-zinc-950 border border-zinc-800 rounded-3xl p-8">
+        <div class="flex justify-between mb-6">
+            <h2 class="text-xl font-semibold text-white">📈 抖动趋势（最近 60 分钟）</h2>
+            <div class="text-xs text-gray-400">数值越高波动越大</div>
         </div>
-        <div class="h-80">
-            <canvas id="jitterTrendChart"></canvas>
+        <div style="height: 380px;">
+            <canvas id="jitterChart"></canvas>
         </div>
     </div>
 
-    <div class="mt-8 text-sm text-gray-500 bg-zinc-900/60 p-5 rounded-2xl border border-zinc-800">
-        <strong>什么是网络抖动？</strong>数据包到达时间的差异。低抖动（&lt;20ms）确保实时应用流畅体验。
+    <!-- 说明 -->
+    <div class="mt-8 p-5 bg-zinc-900/60 rounded-2xl border border-zinc-800 text-sm text-gray-400">
+        <strong>抖动参考：</strong>
+        <span class="text-emerald-400">&lt;10ms</span> 优秀 •
+        <span class="text-yellow-400">10-25ms</span> 一般 •
+        <span class="text-red-400">&gt;25ms</span> 较差
     </div>
 </div>
 {% endblock %}
 
 {% block extra_script %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
 <script>
-let trendChartInstance = null;
-let jitterHistory = [];
-let currentJitter = 0;
+let chartInstance = null;
+let historyData = Array(60).fill(0);
 
-// 初始化抖动历史记录
-for (let i = 0; i < 60; i++) { // 60个点代表1小时
-    jitterHistory.push(0);
-}
-
-// 更新趋势图
-function updateTrendChart() {
-    const ctx = document.getElementById('jitterTrendChart');
-    if (!trendChartInstance) {
-        trendChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: Array.from({length: 60}, (_, i) => i+1),
-                datasets: [{
-                    label: '网络抖动 (ms)',
-                    data: [...jitterHistory],
-                    borderColor: '#00f5d4',
-                    backgroundColor: 'rgba(0, 245, 212, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 0,
-                    pointHoverRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
+function initChart() {
+    const ctx = document.getElementById('jitterChart');
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Array(60).fill(''),
+            datasets: [{
+                label: '抖动 (ms)',
+                data: historyData,
+                borderColor: '#00f5d4',
+                backgroundColor: 'rgba(0, 245, 212, 0.18)',
+                tension: 0.4,
+                borderWidth: 3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: {
+                    min: 0,
+                    ticks: { color: '#94a3b8', callback: v => v + 'ms' },
+                    grid: { color: '#334155' }
                 },
-                scales: {
-                    y: {
-                        grid: { color: '#334155' },
-                        ticks: { color: '#94a3b8', callback: v => v + ' ms' },
-                        min: 0,
-                        max: 50
-                    },
-                    x: {
-                        grid: { color: '#334155' },
-                        ticks: { display: false },
-                        title: {
-                            display: true,
-                            text: '时间',
-                            color: '#94a3b8'
-                        }
-                    }
+                x: {
+                    ticks: { display: false },
+                    grid: { color: '#334155' }
                 }
             }
-        });
-    } else {
-        trendChartInstance.data.datasets[0].data = [...jitterHistory];
-        trendChartInstance.update();
+        }
+    });
+}
+
+async function refreshJitter() {
+    const btn = document.querySelector('.refresh-btn');
+    const originalHTML = btn.innerHTML;
+
+    btn.innerHTML = `<span class="animate-spin inline-block mr-2">⟳</span>刷新中...`;
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/monitor/api/multi-jitter/');
+        const json = await res.json();
+
+        if (json.code === 0 && json.data?.results?.length > 0) {
+            const current = parseFloat(json.data.results[0].jitter) || 0;
+            document.getElementById('currentJitter').textContent = current.toFixed(1);
+
+            if (json.data.history?.datasets?.length > 0) {
+                const newData = json.data.history.datasets[0].data || [];
+                historyData = newData.slice(-60);
+            } else {
+                historyData.shift();
+                historyData.push(current);
+            }
+
+            if (chartInstance) {
+                chartInstance.data.datasets[0].data = historyData;
+                const maxY = Math.max(...historyData, 20);
+                chartInstance.options.scales.y.max = Math.ceil(maxY * 1.3);
+                chartInstance.update('none');
+            }
+
+            const peak = Math.max(...historyData);
+            const avg = historyData.reduce((a,b) => a + b, 0) / historyData.length;
+
+            document.getElementById('peakJitter').textContent = peak.toFixed(1);
+            document.getElementById('avgJitter').textContent = avg.toFixed(1);
+            document.getElementById('stability').textContent = Math.max(0, Math.round(100 - avg * 3)) + '%';
+
+            const statusEl = document.getElementById('statusText');
+            if (current < 10) {
+                statusEl.innerHTML = `<span class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></span> 网络稳定`;
+                statusEl.className = "mt-3 text-emerald-400 text-sm flex items-center justify-center gap-2";
+            } else if (current < 25) {
+                statusEl.innerHTML = `<span class="w-2.5 h-2.5 bg-yellow-400 rounded-full animate-pulse"></span> 网络一般`;
+                statusEl.className = "mt-3 text-yellow-400 text-sm flex items-center justify-center gap-2";
+            } else {
+                statusEl.innerHTML = `<span class="w-2.5 h-2.5 bg-red-400 rounded-full animate-pulse"></span> 网络较差`;
+                statusEl.className = "mt-3 text-red-400 text-sm flex items-center justify-center gap-2";
+            }
+        }
+    } catch (e) {
+        console.error("获取抖动数据失败", e);
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
     }
-}
-
-// 更新统计数据
-function updateStats() {
-    // 更新当前抖动
-    document.getElementById('currentJitter').textContent = currentJitter.toFixed(1);
-
-    // 计算峰值
-    const peak = Math.max(...jitterHistory);
-    document.getElementById('peakJitter').textContent = peak.toFixed(1);
-
-    // 计算均值
-    const sum = jitterHistory.reduce((a, b) => a + b, 0);
-    const avg = sum / jitterHistory.length;
-    document.getElementById('avgJitter').textContent = avg.toFixed(1);
-
-    // 计算稳定性（基于与理想值的偏差）
-    const idealJitter = 5; // 理想抖动值
-    const deviation = Math.abs(avg - idealJitter);
-    const stability = Math.max(0, 100 - deviation * 2);
-    document.getElementById('stability').textContent = Math.round(stability) + '%';
-
-    // 更新网络状态
-    const statusElement = document.querySelector('.network-status');
-    const indicatorElement = document.querySelector('.status-indicator');
-    if (currentJitter < 10) {
-        statusElement.innerHTML = '<div class="status-indicator" style="background-color:#10b981;"></div><span>网络稳定</span>';
-    } else if (currentJitter < 25) {
-        statusElement.innerHTML = '<div class="status-indicator" style="background-color:#f59e0b;"></div><span>网络一般</span>';
-    } else {
-        statusElement.innerHTML = '<div class="status-indicator" style="background-color:#ef4444;"></div><span>网络较差</span>';
-    }
-}
-
-// 模拟实时抖动数据
-function simulateJitter() {
-    // 生成新的抖动值（模拟网络波动）
-    const newValue = Math.random() * 40; // 0-40ms抖动
-
-    // 更新历史记录
-    jitterHistory.shift(); // 移除最旧的值
-    jitterHistory.push(newValue);
-
-    currentJitter = newValue;
-
-    // 更新图表和统计
-    updateTrendChart();
-    updateStats();
-
-    // 继续模拟
-    setTimeout(simulateJitter, 1000);
-}
-
-function refreshJitter() {
-    // 重置数据
-    jitterHistory = Array(60).fill(0);
-    currentJitter = 0;
-    updateTrendChart();
-    updateStats();
 }
 
 // 初始化
-document.addEventListener('DOMContentLoaded', function() {
-    updateTrendChart();
-    updateStats();
-    simulateJitter(); // 开始实时模拟
-
-    // 定期更新时间
-    setInterval(() => {
-        const now = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-        document.getElementById('last-update').textContent = `最后更新: ${now}`;
-    }, 1000);
+document.addEventListener('DOMContentLoaded', () => {
+    initChart();
+    refreshJitter();
+    setInterval(refreshJitter, 60000);
 });
 </script>
 {% endblock %}

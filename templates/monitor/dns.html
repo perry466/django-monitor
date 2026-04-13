@@ -47,7 +47,7 @@
         </button>
     </div>
 
-    <!-- 当前最新对比 - 水平条形图（最推荐） -->
+    <!-- 当前最新对比 - 水平条形图 -->
     <div class="dns-card mb-10">
         <h2 class="text-2xl font-semibold mb-6 text-white flex items-center gap-2">
             📊 当前解析时间横向对比（越短越好）
@@ -94,7 +94,7 @@ async function loadDNSData() {
         const json = await res.json();
         if (json.code !== 0) throw new Error(json.msg || 'API 返回错误');
 
-        const data = json.data;
+        const data = json.data || {};
 
         // ==================== 水平条形图（当前最新值） ====================
         const barCtx = document.getElementById('dnsBarChart');
@@ -103,19 +103,19 @@ async function loadDNSData() {
         dnsBarChart = new Chart(barCtx, {
             type: 'bar',
             data: {
-                labels: data.results.map(r => r.target),
+                labels: data.results ? data.results.map(r => r.target) : [],
                 datasets: [{
                     label: 'DNS 解析时间 (ms)',
-                    data: data.results.map(r => r.resolve_time),
+                    data: data.results ? data.results.map(r => parseFloat(r.resolve_time) || 0) : [],
                     backgroundColor: ['#22d3ee', '#a855f7', '#f472b6', '#fb923c', '#eab308'],
-                    borderColor: '#ffffff33',
-                    borderWidth: 2,
-                    borderRadius: 8,
-                    barThickness: 32,
+                    borderColor: '#ffffff22',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    barThickness: 28,
                 }]
             },
             options: {
-                indexAxis: 'y',           // 关键：水平条形
+                indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
@@ -128,52 +128,55 @@ async function loadDNSData() {
                     }
                 },
                 scales: {
-                    x: {
-                        grid: { color: '#334155' },
-                        ticks: { color: '#94a3b8', font: { size: 13 } }
-                    },
-                    y: {
-                        grid: { color: '#334155' },
-                        ticks: { color: '#94a3b8', font: { size: 13 } }
-                    }
-                }
-            }
-        });
-
-        // ==================== 分组柱状图（历史趋势） ====================
-        const historyCtx = document.getElementById('dnsHistoryChart');
-        if (dnsHistoryChart) dnsHistoryChart.destroy();
-
-        dnsHistoryChart = new Chart(historyCtx, {
-            type: 'bar',
-            data: {
-                labels: data.history.labels,
-                datasets: data.history.datasets
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: { color: '#e2e8f0', padding: 20, font: { size: 13 } }
-                    }
-                },
-                scales: {
                     x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
                     y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
                 }
             }
         });
 
+        // ==================== 历史趋势图（支持5个目标） ====================
+        const historyCtx = document.getElementById('dnsHistoryChart');
+        if (dnsHistoryChart) dnsHistoryChart.destroy();
+
+        if (data.history && data.history.datasets) {
+            dnsHistoryChart = new Chart(historyCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.history.labels || [],
+                    datasets: data.history.datasets.map((dataset, index) => ({
+                        ...dataset,
+                        backgroundColor: ['#22d3ee', '#a855f7', '#f472b6', '#fb923c', '#eab308'][index % 5],
+                        borderColor: '#ffffff22',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        barThickness: 12,
+                    }))
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: '#e2e8f0', padding: 15, font: { size: 13 } }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                        y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+
     } catch (err) {
         console.error('DNS 数据加载失败:', err);
-        const errorHTML = `<div class="error-msg">❌ 加载失败: ${err.message}<br><button onclick="refreshDNS()" class="mt-4 px-6 py-2 bg-red-600 hover:bg-red-700 rounded-xl">重试</button></div>`;
+        const errorHTML = `<div class="error-msg">❌ 加载失败，请稍后重试<br><button onclick="refreshDNS()" class="mt-4 px-6 py-2 bg-red-600 hover:bg-red-700 rounded-xl text-sm">重试</button></div>`;
 
         const barContainer = document.getElementById('barContainer');
         const historyContainer = document.getElementById('historyContainer');
         if (barContainer) barContainer.innerHTML = errorHTML;
-        if (historyContainer) historyContainer.innerHTML += `<div class="error-msg mt-4">${err.message}</div>`;
+        if (historyContainer) historyContainer.innerHTML = errorHTML;
     } finally {
         if (barLoading) barLoading.style.display = 'none';
         if (historyLoading) historyLoading.style.display = 'none';
@@ -184,7 +187,7 @@ function refreshDNS() {
     loadDNSData();
 }
 
-// 页面加载完成后执行，并每 25 秒自动刷新一次
+// 页面加载后执行，并每25秒自动刷新一次
 window.addEventListener('load', () => {
     loadDNSData();
     setInterval(loadDNSData, 25000);

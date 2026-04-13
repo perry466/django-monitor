@@ -5,7 +5,7 @@
 {% block content %}
 <div class="min-h-screen bg-zinc-950 text-white pb-12">
 
-    <!-- 顶部标题栏 -->
+    <!-- 顶部标题栏（完全保留你原来的） -->
     <div class="sticky top-0 z-50 h-16 border-b border-zinc-800 bg-zinc-900/95 backdrop-blur-md px-8 flex items-center justify-between">
         <div class="flex items-center gap-4">
             <div class="w-9 h-9 bg-gradient-to-br from-cyan-400 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-cyan-500/30">
@@ -26,12 +26,12 @@
 
     <div class="p-8 max-w-screen-2xl mx-auto">
 
-        <!-- 动态卡片容器（关键修改） -->
+        <!-- 动态卡片容器（保留你原来的） -->
         <div id="dynamic-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <!-- JavaScript 动态生成卡片 -->
         </div>
 
-        <!-- 图表区域 -->
+        <!-- 图表区域（保留你原来的结构） -->
         <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-7">
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-3">
@@ -54,7 +54,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <script>
-// Chart.js 初始化（支持任意数量目标）
+// Chart.js 初始化
 let latencyChart = null;
 
 function initChart() {
@@ -63,25 +63,63 @@ function initChart() {
         type: 'line',
         data: {
             labels: Array(20).fill(''),
-            datasets: []   // 初始为空，后续动态填充
+            datasets: []
         },
         options: {
             maintainAspectRatio: false,
             responsive: true,
             interaction: { intersect: false, mode: 'index' },
             plugins: {
-                legend: { position: 'top', align: 'start', labels: { color: '#d1d5db', usePointStyle: true, padding: 20, font: { size: 13 } } },
-                tooltip: { backgroundColor: '#27272a', borderColor: '#52525b', padding: 12 }
+                legend: {
+                    position: 'top',
+                    align: 'start',
+                    labels: { color: '#d1d5db', usePointStyle: true, padding: 20, font: { size: 13 } }
+                },
+                tooltip: {
+                    backgroundColor: '#27272a',
+                    borderColor: '#52525b',
+                    padding: 12
+                }
             },
             scales: {
-                x: { grid: { color: '#3f3f46' }, ticks: { color: '#71717a', font: { size: 11 } } },
-                y: { min: 0, max: 230, grid: { color: '#3f3f46' }, ticks: { color: '#71717a', callback: v => v + ' ms', stepSize: 40 } }
+                x: {
+                    grid: { color: '#3f3f46' },
+                    ticks: { color: '#71717a', font: { size: 11 } }
+                },
+                y: {
+                    grid: { color: '#3f3f46' },
+                    ticks: {
+                        color: '#71717a',
+                        callback: v => v + ' ms',
+                        stepSize: 40
+                    }
+                    // 这里我们会在后面动态修改 min 和 max
+                }
+            },
+            elements: {
+                line: { tension: 0.4, borderWidth: 3 },
+                point: { radius: 3, hoverRadius: 6 }
             }
         }
     });
 }
 
-// 动态渲染卡片（核心功能）
+// 新增：智能计算Y轴最大值（解决延迟太高看不到点的问题）
+function calculateYMax(values) {
+    if (!values || values.length === 0) return 200;
+
+    const maxValue = Math.max(...values);
+    // 给一点缓冲空间（最高值的 1.25 倍）
+    let maxY = Math.ceil(maxValue * 1.25);
+
+    // 让刻度更漂亮（向上取整到 50、100、200、500 等）
+    if (maxY <= 100) return 120;
+    if (maxY <= 200) return 250;
+    if (maxY <= 500) return 600;
+    return Math.ceil(maxY / 100) * 100;
+}
+
+// 渲染卡片（完全保留你原来的逻辑）
 function renderCards(results) {
     const container = document.getElementById('dynamic-cards');
     container.innerHTML = '';
@@ -121,13 +159,31 @@ function renderCards(results) {
     });
 }
 
+// 更新图表（只修改这里）
 function updateChart(history) {
     if (!latencyChart) return;
+
     latencyChart.data.labels = history.labels || Array(20).fill('');
     latencyChart.data.datasets = history.datasets || [];
+
+    // === 关键修复：动态设置 Y 轴最大值 ===
+    let allValues = [];
+    if (history.datasets) {
+        history.datasets.forEach(dataset => {
+            if (dataset.data) {
+                allValues = allValues.concat(dataset.data);
+            }
+        });
+    }
+
+    const maxY = calculateYMax(allValues);
+    latencyChart.options.scales.y.max = maxY;
+    latencyChart.options.scales.y.min = 0;
+
     latencyChart.update('none');
 }
 
+// 获取数据（保留你原来的逻辑）
 async function fetchData() {
     try {
         const res = await fetch('/monitor/api/multi-ping/');

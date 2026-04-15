@@ -192,38 +192,55 @@ def measure_jitter(target, count=10):
 
 
 # =====================
-# 8. TCP 重传率监控（系统级）
+# 8. TCP 重传率监控（改进版）
 # =====================
 def get_tcp_retransmit_rate():
     """
     返回当前 TCP 重传率 (%)
-    推荐阈值： <0.1% 优秀； 0.1-1% 需关注； >1% 问题明显
+    推荐阈值（更符合实际网络）：
+    < 0.5%   → excellent
+    0.5-2.0% → warning
+    > 2.0%   → critical
     """
     try:
         system = platform.system().lower()
-        output = ""
+        current_sent = 0
+        current_retrans = 0
 
         if system == 'linux':
+            # 优先使用 nstat（如果可用），否则 fallback 到 netstat /proc
             try:
-                output = subprocess.check_output(['netstat', '-s'],
+                output = subprocess.check_output(['nstat', '-z'],
                                                  stderr=subprocess.STDOUT,
                                                  universal_newlines=True, timeout=3)
-            except FileNotFoundError:
-                output = subprocess.check_output(['cat', '/proc/net/snmp'],
-                                                 universal_newlines=True, timeout=3)
+                sent_match = re.search(r'TcpOutSegs\s+(\d+)', output)
+                retrans_match = re.search(r'TcpRetransSegs\s+(\d+)', output)
+            except Exception:
+                try:
+                    output = subprocess.check_output(['netstat', '-s'],
+                                                     stderr=subprocess.STDOUT,
+                                                     universal_newlines=True, timeout=3)
+                except FileNotFoundError:
+                    output = subprocess.check_output(['cat', '/proc/net/snmp'],
+                                                     universal_newlines=True, timeout=3)
 
-            sent_match = re.search(r'(\d+)\s+segments\s+send out', output, re.IGNORECASE)
-            retrans_match = re.search(r'(\d+)\s+segments\s+retransmited', output, re.IGNORECASE)
+                # 更健壮的匹配（支持不同内核输出）
+                sent_match = re.search(r'(\d+)\s+segments\s+send out', output, re.IGNORECASE)
+                retrans_match = re.search(r'(\d+)\s+segments\s+retransmited?', output, re.IGNORECASE)  # 兼容 retransmited / retransmitted
 
-            if not sent_match or not retrans_match:
-                sent_match = re.search(r'Tcp:\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)', output)
-                retrans_match = re.search(r'Tcp:\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)', output)
+                if not sent_match or not retrans_match:
+                    # 备用：/proc/net/snmp Tcp 行（第12和13字段）
+                    snmp_match = re.search(r'Tcp:\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)\s+(\d+)', output)
+                    if snmp_match:
+                        current_sent = int(snmp_match.group(1))
+                        current_retrans = int(snmp_match.group(2))
 
-            current_sent = int(sent_match.group(1)) if sent_match else 0
-            current_retrans = int(retrans_match.group(1)) if retrans_match else 0
+            if sent_match:
+                current_sent = int(sent_match.group(1))
+            if retrans_match:
+                current_retrans = int(retrans_match.group(1))
 
-        else:
-            # Windows
+        else:  # Windows
             output = subprocess.check_output(['netstat', '-s'],
                                              stderr=subprocess.STDOUT,
                                              universal_newlines=True, timeout=5)
@@ -237,16 +254,28 @@ def get_tcp_retransmit_rate():
         global _last_tcp_stats
         now = time.time()
 
-        if _last_tcp_stats['timestamp'] == 0 or (now - _last_tcp_stats['timestamp'] > 60):
+        if _last_tcp_stats['timestamp'] == 0 or (now - _last_tcp_stats['timestamp'] > 90):
+            # 首次启动或间隔过长时，不计算比例，直接返回 0 并更新基线
             rate = 0.0
         else:
             delta_sent = max(current_sent - _last_tcp_stats['sent'], 1)
             delta_retrans = max(current_retrans - _last_tcp_stats['retrans'], 0)
             rate = round((delta_retrans / delta_sent) * 100, 3)
 
-        _last_tcp_stats.update({'sent': current_sent, 'retrans': current_retrans, 'timestamp': now})
+        # 更新缓存
+        _last_tcp_stats.update({
+            'sent': current_sent,
+            'retrans': current_retrans,
+            'timestamp': now
+        })
 
-        status = 'excellent' if rate < 0.1 else 'warning' if rate < 1.0 else 'critical'
+        # 更合理的状态判断
+        if rate < 0.5:
+            status = 'excellent'
+        elif rate < 2.0:
+            status = 'warning'
+        else:
+            status = 'critical'
 
         return {
             'retrans_rate': rate,

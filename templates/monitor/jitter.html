@@ -268,17 +268,33 @@ async function refreshJitter() {
                 chartInstance.update();
             }
 
-            // 更新其他卡片
-            const peak = Math.max(...chartData, 0);
-            const avg = chartData.length ? (chartData.reduce((a, b) => a + b, 0) / chartData.length) : 0;
+            // 更新其他卡片 - 改进后的稳定性评分
+const peak = Math.max(...chartData, 0);
+const avg = chartData.length ? (chartData.reduce((a, b) => a + b, 0) / chartData.length) : 0;
 
-            document.getElementById('peakJitter').textContent = peak.toFixed(1);
-            document.getElementById('avgJitter').textContent = avg.toFixed(1);
+document.getElementById('peakJitter').textContent = peak.toFixed(1);
+document.getElementById('avgJitter').textContent = avg.toFixed(1);
 
-            const stabilityScore = Math.max(0, Math.min(100, Math.round(100 - avg * 4)));
-            document.getElementById('stability').textContent = stabilityScore + '%';
-            document.getElementById('stabilityLabel').textContent =
-                stabilityScore > 85 ? '优秀' : stabilityScore > 65 ? '良好' : '需关注';
+// 更合理的稳定性评分（推荐）
+let stabilityScore = 100;
+let label = '优秀';
+
+if (avg <= 8) {
+    stabilityScore = 100;
+    label = '优秀';
+} else if (avg <= 15) {
+    stabilityScore = Math.round(92 - (avg - 8) * 3.5);
+    label = '良好';
+} else if (avg <= 25) {
+    stabilityScore = Math.round(70 - (avg - 15) * 4);
+    label = '需关注';
+} else {
+    stabilityScore = Math.max(15, Math.round(45 - (avg - 25) * 2.5));
+    label = '较差';
+}
+
+document.getElementById('stability').textContent = stabilityScore + '%';
+document.getElementById('stabilityLabel').textContent = label;
 
             // 当前状态
             const statusEl = document.getElementById('statusText');

@@ -453,3 +453,77 @@ def get_recent_ai_reports(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# ====================== 新增：下载日志为 CSV ======================
+from django.http import HttpResponse
+import csv
+from datetime import timedelta
+
+def download_logs(request):
+    """下载系统日志为 CSV 文件（支持当前筛选条件）"""
+    try:
+        log_type = request.GET.get('log_type', 'all')
+        period = request.GET.get('period', 'all')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        queryset = MonitorResult.objects.select_related('target').order_by('-timestamp')
+
+        # 筛选条件（与 get_system_logs 保持一致）
+        if log_type != 'all':
+            if log_type == 'ping':
+                queryset = queryset.filter(ping_time__isnull=False)
+            elif log_type == 'http':
+                queryset = queryset.filter(http_response_time__isnull=False)
+            elif log_type == 'dns':
+                queryset = queryset.filter(dns_resolve_time__isnull=False)
+            elif log_type == 'jitter':
+                queryset = queryset.filter(network_jitter__isnull=False)
+            elif log_type == 'tcp_retrans':
+                queryset = queryset.filter(tcp_retransmit_rate__isnull=False)
+
+        if period == 'today':
+            queryset = queryset.filter(timestamp__date=timezone.now().date())
+        elif period == '7days':
+            queryset = queryset.filter(timestamp__gte=timezone.now() - timedelta(days=7))
+        elif period == '30days':
+            queryset = queryset.filter(timestamp__gte=timezone.now() - timedelta(days=30))
+        elif period == 'custom' and start_date and end_date:
+            try:
+                start = datetime.strptime(start_date, '%Y-%m-%d')
+                end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+                queryset = queryset.filter(timestamp__range=(start, end))
+            except ValueError:
+                pass  # 日期格式错误则不筛选
+
+        # 生成 CSV
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        filename = f"NEON_Monitor_Logs_{timezone.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        writer = csv.writer(response)
+        # CSV 表头
+        writer.writerow(['时间', '目标', '监控类型', '延迟(ms)', '丢包率(%)', 'HTTP响应(ms)',
+                        'DNS解析(ms)', '抖动(ms)', 'TCP重传率(%)', '状态'])
+
+        for r in queryset:
+            writer.writerow([
+                r.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                r.target.name if r.target else '系统',
+                'Monitor',
+                round(r.ping_time or 0, 1),
+                round(r.packet_loss or 0, 1),
+                round(r.http_response_time or 0, 1),
+                round(r.dns_resolve_time or 0, 2),
+                round(r.network_jitter or 0, 2),
+                round(r.tcp_retransmit_rate or 0, 3),
+                r.status or '正常'
+            ])
+
+        return response
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return HttpResponse(f"下载失败: {str(e)}", status=500)

@@ -1,128 +1,195 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="zh-hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>404 - 一起帮助找回走失儿童 ❤️ NEON MONITOR</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-{% block title %}404 - 一起帮助找回走失儿童 - NEON MONITOR{% endblock %}
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #bae6fd 50%, #e0f2fe 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 20px;
+            text-align: center;
+            overflow: hidden;
+        }
 
-{% block extra_style %}
-<style>
-    .not-found-container {
-        min-height: 85vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        padding: 40px 20px;
-        text-align: center;
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    }
+        .tree {
+            font-size: clamp(4.2rem, 10vw, 6rem);
+            margin-bottom: 24px;
+            filter: drop-shadow(0 12px 30px rgba(34, 211, 238, 0.25));
+        }
 
-    .error-code {
-        font-size: 7.5rem;
-        font-weight: 700;
-        color: #ef4444;
-        margin: 0 0 10px 0;
-        line-height: 1;
-    }
+        .error-code {
+            font-size: clamp(6rem, 16vw, 10.5rem);
+            font-weight: 900;
+            line-height: 0.75;
+            letter-spacing: -0.1em;
+            background: linear-gradient(90deg, #22d3ee, #06b6d4, #e11d48);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+        }
 
-    .title {
-        font-size: 1.85rem;
-        color: #1e2937;
-        margin-bottom: 12px;
-    }
+        .title {
+            font-size: clamp(1.7rem, 5.5vw, 2.4rem);
+            color: #1e2937;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
 
-    .subtitle {
-        font-size: 1.15rem;
-        color: #64748b;
-        max-width: 420px;
-        margin: 0 auto 35px;
-        line-height: 1.6;
-    }
+        .subtitle {
+            font-size: clamp(1.1rem, 4vw, 1.28rem);
+            color: #475569;
+            line-height: 1.8;
+            max-width: 460px;
+            margin: 0 auto 40px;
+        }
 
-    .公益-box {
-        width: 100%;
-        max-width: 620px;
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-        overflow: hidden;
-        margin-bottom: 30px;
-    }
+        .公益-box {
+            width: 100%;
+            max-width: 640px;
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 28px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            min-height: clamp(290px, 40vh, 370px);
+            position: relative;
+            margin-bottom: 40px;
+        }
 
-    .公益-box iframe {
-        width: 100%;
-        height: 460px;
-        border: none;
-        display: block;
-    }
+        .loading-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.92);
+            z-index: 10;
+        }
 
-    .btn-group {
-        display: flex;
-        gap: 16px;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
+        .spinner {
+            width: 52px;
+            height: 52px;
+            border: 6px solid #e2e8f0;
+            border-top-color: #22d3ee;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
 
-    .btn {
-        padding: 14px 32px;
-        border-radius: 50px;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.3s;
-        font-size: 1.02rem;
-    }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
 
-    .btn-home {
-        background: #22d3ee;
-        color: white;
-    }
+        .btn-group {
+            display: flex;
+            gap: 18px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
 
-    .btn-home:hover {
-        background: #06b6d4;
-        transform: translateY(-3px);
-    }
+        .btn {
+            padding: clamp(15px, 4vw, 18px) clamp(36px, 8vw, 46px);
+            border-radius: 9999px;
+            font-size: clamp(1.05rem, 3.8vw, 1.18rem);
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.35s ease;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
 
-    .btn-reload {
-        background: #64748b;
-        color: white;
-    }
+        .btn-home {
+            background: linear-gradient(90deg, #22d3ee, #06b6d4);
+            color: white;
+        }
 
-    .btn-reload:hover {
-        background: #475569;
-    }
+        .btn-home:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 15px 35px rgba(34, 211, 238, 0.45);
+        }
 
-    .footer-text {
-        margin-top: 30px;
-        color: #94a3b8;
-        font-size: 1rem;
-    }
-</style>
-{% endblock %}
+        .btn-reload {
+            background: #64748b;
+            color: white;
+        }
 
-{% block content %}
-<div class="not-found-container">
+        .btn-reload:hover {
+            background: #475569;
+            transform: translateY(-4px);
+        }
 
-    <h1 class="error-code">404</h1>
-    <h2 class="title">页面不见了...</h2>
+        .footer {
+            margin-top: 36px;
+            color: #64748b;
+            font-size: clamp(1rem, 3.2vw, 1.08rem);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="tree">🌳</div>
+
+    <div class="error-code">404</div>
+    <div class="title">页面不见了...</div>
     <p class="subtitle">
         您访问的页面可能已经被小树带去植树了 🌳<br>
-        但我们可以一起帮助另一个走失的孩子回家
+        但我们可以一起帮助另一个走失的孩子回家 ❤️
     </p>
 
-    <!-- 公益内容区域 -->
-    <div class="公益-box">
-        <iframe
-            src="https://wx.gtimg.com/core/404.html"
-            title="帮助寻找失踪儿童公益页面"
-            allowfullscreen>
-        </iframe>
+    <!-- 腾讯公益区域 -->
+    <div class="公益-box" id="tencent-404">
+        <div class="loading-placeholder" id="loading-placeholder">
+            <div class="spinner"></div>
+            <div style="color: #475569; font-size: 1.1rem; font-weight: 500;">
+                正在加载公益寻人信息...<br>
+                <small style="color: #94a3b8; margin-top: 10px; display: block;">每一次加载，都可能帮助一个家庭团圆</small>
+            </div>
+        </div>
     </div>
 
     <div class="btn-group">
-        <a href="{% url 'home' %}" class="btn btn-home">← 返回首页</a>
+        <a href="/" class="btn btn-home">← 返回监控首页</a>
         <a href="javascript:window.location.reload()" class="btn btn-reload">重新加载页面</a>
     </div>
 
-    <div class="footer-text">
+    <div class="footer">
         每一次转发，都可能帮助一个家庭团圆 ❤️
     </div>
-</div>
-{% endblock %}
+
+<!-- 腾讯公益 JS（延迟 2.5 秒） -->
+<script>
+    setTimeout(() => {
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = '//qzonestyle.gtimg.cn/qzone/hybrid/app/404/search_children.js';
+        script.charset = 'utf-8';
+        script.setAttribute('homePageUrl', '/');
+        script.setAttribute('homePageName', '返回 NEON MONITOR 首页');
+
+        script.onload = function() {
+            const placeholder = document.getElementById('loading-placeholder');
+            if (placeholder) {
+                placeholder.style.opacity = '0';
+                setTimeout(() => placeholder.style.display = 'none', 800);
+            }
+        };
+
+        document.body.appendChild(script);
+    }, 2000);  <!-- 此处2000为2s加载时间-->
+</script>
+
+</body>
+</html>

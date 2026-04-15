@@ -37,7 +37,7 @@
             backdrop-filter: blur(10px);
         }
 
-        /* 侧边栏 - 默认收起 */
+        /* 侧边栏 - 极致性能优化 */
         .sidebar {
             position: fixed;
             left: 0;
@@ -47,15 +47,32 @@
             background: rgba(15, 23, 42, 0.98);
             border-right: 1px solid var(--neon-cyan);
             transform: translateX(-100%);
-            transition: transform 0.4s cubic-bezier(0.32, 0.72, 0.1, 1);
-            z-index: 100;
+            transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+            z-index: 200;
             padding-top: 70px;
-            box-shadow: 6px 0 25px rgba(0, 245, 212, 0.2);
+            box-shadow: 8px 0 30px rgba(0, 245, 212, 0.25);
             overflow-y: auto;
+            will-change: transform;
         }
 
         .sidebar.show {
             transform: translateX(0);
+        }
+
+        /* 遮罩层 - 解决卡顿核心 */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+            z-index: 150;
+        }
+
+        .overlay.show {
+            opacity: 1;
+            visibility: visible;
         }
 
         .menu-item {
@@ -74,15 +91,14 @@
             padding-left: 32px;
         }
 
-        /* 主内容区 */
+        /* 主内容区 - 完全不改布局属性，彻底避免重排 */
         .main-content {
-            margin-left: 0;
             padding: 24px 20px;
-            transition: margin-left 0.4s ease;
             min-height: calc(100vh - 60px);
+            position: relative;
+            z-index: 10;
         }
 
-        /* Tailwind 配置 */
         .tail-container {
             max-width: 1280px;
             margin: 0 auto;
@@ -95,7 +111,10 @@
 </head>
 <body>
 
-    <!-- 侧边栏（默认收起） -->
+    <!-- 遮罩层 -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- 侧边栏（完整菜单） -->
     <div class="sidebar" id="sidebar">
         <div class="p-6 border-b border-cyan-500/30">
             <div class="logo-font text-3xl font-bold tracking-widest text-white">Booker Tao</div>
@@ -122,18 +141,15 @@
     <!-- 顶部栏 -->
     <div class="top-bar flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <!-- 通用切换按钮 -->
-            <button id="sidebar-toggle"
-                    class="w-11 h-11 flex items-center justify-center text-3xl text-cyan-400 hover:text-white transition-all">
+            <button id="sidebar-toggle" class="w-11 h-11 flex items-center justify-center text-3xl text-cyan-400 hover:text-white transition-all">
                 ☰
             </button>
             <div class="logo-font text-2xl font-semibold tracking-wider hidden sm:block">BookerTao MONITOR</div>
         </div>
-
         <div class="time text-sm text-cyan-300 font-medium" id="current-time"></div>
     </div>
 
-    <!-- 主内容 -->
+    <!-- 主内容（完全不改布局） -->
     <div class="main-content" id="main-content">
         <div class="tail-container">
             {% block content %}{% endblock %}
@@ -142,28 +158,20 @@
 
     <script>
         const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
         const toggleBtn = document.getElementById('sidebar-toggle');
-        const mainContent = document.getElementById('main-content');
 
         function toggleSidebar() {
-            sidebar.classList.toggle('show');
-
-            // 可选：收起时让主内容靠左（视觉更干净）
-            if (sidebar.classList.contains('show')) {
-                mainContent.style.marginLeft = '280px';
-            } else {
-                mainContent.style.marginLeft = '0';
-            }
+            const isOpen = sidebar.classList.toggle('show');
+            overlay.classList.toggle('show', isOpen);
         }
 
         toggleBtn.addEventListener('click', toggleSidebar);
 
-        // 点击侧边栏以外区域关闭（移动端友好）
-        document.addEventListener('click', function(e) {
-            if (!sidebar.contains(e.target) && e.target !== toggleBtn) {
-                sidebar.classList.remove('show');
-                mainContent.style.marginLeft = '0';
-            }
+        // 点击遮罩或外部关闭
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('show');
+            overlay.classList.remove('show');
         });
 
         // 实时时间
@@ -175,11 +183,11 @@
         setInterval(updateTime, 1000);
         updateTime();
 
-        // ESC 键关闭菜单
+        // ESC 键关闭
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
+            if (e.key === 'Escape' && sidebar.classList.contains('show')) {
                 sidebar.classList.remove('show');
-                mainContent.style.marginLeft = '0';
+                overlay.classList.remove('show');
             }
         });
     </script>

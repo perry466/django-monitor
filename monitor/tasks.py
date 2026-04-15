@@ -12,8 +12,9 @@ from .monitoring import (
     get_tcp_retransmit_rate,
 )
 
+
 # =====================
-# 动态获取目标（核心完善）
+# 动态获取目标
 # =====================
 def get_targets_for_category(category: str):
     """根据分类获取活跃监控目标"""
@@ -24,7 +25,7 @@ def get_targets_for_category(category: str):
 
 
 # =====================
-# 定时任务（现在完全动态）
+# 定时任务
 # =====================
 def multi_ping_task():
     """每分钟执行一次多目标 Ping + 网络抖动采集"""
@@ -170,13 +171,21 @@ def multi_tcp_retrans_task():
 
 
 # =====================
-# 启动调度器
+# 启动调度器（已优化时区）
 # =====================
 def start_scheduler():
-    scheduler = BackgroundScheduler(timezone='Asia/Shanghai')
-    scheduler.add_job(multi_ping_task, IntervalTrigger(minutes=1), id='multi_ping_jitter', replace_existing=True)
-    scheduler.add_job(multi_http_task, IntervalTrigger(minutes=1), id='multi_http', replace_existing=True)
-    scheduler.add_job(multi_dns_task, IntervalTrigger(minutes=1), id='multi_dns', replace_existing=True)
-    scheduler.add_job(multi_tcp_retrans_task, IntervalTrigger(minutes=1), id='multi_tcp_retrans', replace_existing=True)
+    """启动 APScheduler 并明确指定上海时区"""
+    scheduler = BackgroundScheduler(timezone='Asia/Shanghai')  # ← 关键：确保定时任务使用正确时区
+
+    scheduler.add_job(multi_ping_task, IntervalTrigger(minutes=1),
+                      id='multi_ping_jitter', replace_existing=True)
+    scheduler.add_job(multi_http_task, IntervalTrigger(minutes=1),
+                      id='multi_http', replace_existing=True)
+    scheduler.add_job(multi_dns_task, IntervalTrigger(minutes=1),
+                      id='multi_dns', replace_existing=True)
+    scheduler.add_job(multi_tcp_retrans_task, IntervalTrigger(minutes=1),
+                      id='multi_tcp_retrans', replace_existing=True)
+
     scheduler.start()
-    print("✅ APScheduler 已成功启动 - 所有监控任务已支持动态配置")
+    print("✅ APScheduler 已成功启动（时区：Asia/Shanghai）")
+    print("   - 每分钟执行：Ping + Jitter、HTTP、DNS、TCP重传率")

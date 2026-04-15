@@ -5,112 +5,124 @@
 {% block extra_style %}
 <style>
     .ai-header {
-        background: linear-gradient(135deg, #00f5d4, #7b5eff);
+        background: linear-gradient(90deg, #00f5d4, #a855f7, #ec4899);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
 
     .neon-card {
-        background: rgba(15, 23, 42, 0.85);
-        border: 1px solid rgba(0, 245, 212, 0.35);
-        box-shadow: 0 0 30px rgba(0, 245, 212, 0.25);
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(0, 245, 212, 0.45);
+        box-shadow: 0 0 30px rgba(0, 245, 212, 0.35);
         transition: all 0.4s ease;
     }
     .neon-card:hover {
-        box-shadow: 0 0 45px rgba(0, 245, 212, 0.45);
-        transform: translateY(-4px);
+        box-shadow: 0 0 50px rgba(0, 245, 212, 0.55);
+        transform: translateY(-6px);
     }
 
     .report-area {
-        background: #0f172a;
-        border: 1px solid #334155;
+        background: #0a0e17;
+        border: 1px solid rgba(0, 245, 212, 0.3);
         border-radius: 16px;
-        padding: 28px;
-        min-height: 420px;
-        max-height: 520px;
+        padding: 32px;
+        min-height: 460px;
+        max-height: 620px;
         overflow-y: auto;
-        line-height: 1.75;
+        line-height: 1.85;
         color: #e2e8f0;
-        font-size: 15.5px;
+        font-size: 15.8px;
+        box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.6);
     }
 
     .btn-glow {
         position: relative;
         overflow: hidden;
+        transition: all 0.3s ease;
     }
     .btn-glow::before {
         content: '';
         position: absolute;
         top: -50%;
-        left: -50%;
-        width: 40%;
+        left: -100%;
+        width: 50%;
         height: 200%;
-        background: linear-gradient(120deg, transparent, rgba(255,255,255,0.4), transparent);
+        background: linear-gradient(120deg, transparent, rgba(255,255,255,0.35), transparent);
         transform: skewX(-25deg);
-        transition: left 0.6s;
+        transition: left 0.7s;
     }
     .btn-glow:hover::before {
         left: 150%;
+    }
+    .btn-glow:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 0 40px rgba(0, 245, 212, 0.6);
     }
 
     .config-modal {
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.88);
-        z-index: 1100;
+        background: rgba(10, 14, 23, 0.92);
+        z-index: 1200;
         align-items: center;
         justify-content: center;
+        backdrop-filter: blur(8px);
     }
+
     .config-content {
         background: #0f172a;
         border: 1px solid #00f5d4;
-        box-shadow: 0 0 40px rgba(0, 245, 212, 0.3);
+        box-shadow: 0 0 50px rgba(0, 245, 212, 0.4);
+        max-width: 460px;
+        width: 92%;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-6 py-10">
+<div class="max-w-5xl mx-auto px-4 sm:px-6 py-10">
 
     <!-- 头部 -->
-    <div class="text-center mb-12">
-        <div class="inline-flex items-center gap-4 mb-4">
-            <div class="text-6xl">🤖</div>
-            <h1 class="text-5xl font-bold ai-header tracking-tighter">AI 智能分析</h1>
+    <div class="text-center mb-14">
+        <div class="inline-flex items-center gap-5 mb-6">
+            <div class="text-7xl">🤖</div>
+            <h1 class="text-5xl sm:text-6xl font-bold ai-header tracking-[-2px]">
+                AI 智能分析
+            </h1>
         </div>
-        <p class="text-xl text-[#88f0e0] max-w-lg mx-auto">
+        <p class="text-xl text-[#88f0e0] max-w-md mx-auto">
             基于实时监控数据与系统日志 · 瞬间生成专业运维诊断报告
         </p>
     </div>
 
     <!-- 操作按钮 -->
-    <div class="flex flex-wrap justify-center gap-6 mb-12">
+    <div class="flex flex-col sm:flex-row justify-center gap-6 mb-16">
         <button onclick="generateReport('monitor')"
-                class="btn-glow px-10 py-5 rounded-2xl text-lg font-semibold flex items-center gap-3 bg-gradient-to-r from-cyan-400 to-teal-400 text-black hover:scale-105 transition-all">
-            <span class="text-2xl">📊</span>
+                class="btn-glow px-12 py-6 rounded-3xl text-xl font-semibold flex items-center justify-center gap-4 bg-gradient-to-r from-cyan-400 to-emerald-400 text-black shadow-xl">
+            <span class="text-3xl">📊</span>
             分析监控数据
         </button>
 
         <button onclick="generateReport('logs')"
-                class="btn-glow px-10 py-5 rounded-2xl text-lg font-semibold flex items-center gap-3 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white hover:scale-105 transition-all">
-            <span class="text-2xl">📋</span>
+                class="btn-glow px-12 py-6 rounded-3xl text-xl font-semibold flex items-center justify-center gap-4 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-xl">
+            <span class="text-3xl">📋</span>
             分析系统日志
         </button>
     </div>
 
-    <!-- 报告展示卡片 -->
-    <div class="neon-card rounded-3xl p-8">
-        <div class="flex justify-between items-center mb-6 border-b border-cyan-900 pb-4">
+    <!-- 报告展示区 -->
+    <div class="neon-card rounded-3xl p-8 sm:p-10">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 border-b border-cyan-900/50 pb-6">
             <h2 id="reportTitle" class="text-2xl font-semibold text-white">AI 诊断报告</h2>
-            <div id="modelInfo" class="text-sm text-cyan-300 font-mono"></div>
+            <div id="modelInfo" class="text-sm font-mono text-cyan-300"></div>
         </div>
 
-        <!-- 加载状态 -->
-        <div id="loading" class="hidden flex flex-col items-center justify-center py-24">
-            <div class="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mb-6"></div>
-            <p class="text-cyan-300 text-lg">AI 正在深度分析网络状况...</p>
-            <p class="text-gray-500 text-sm mt-2">这可能需要几秒钟</p>
+        <!-- 加载动画 -->
+        <div id="loading" class="hidden flex flex-col items-center justify-center py-28">
+            <div class="w-20 h-20 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mb-8"></div>
+            <p class="text-cyan-300 text-xl">AI 正在深度分析...</p>
+            <p class="text-gray-500 mt-3">这可能需要几秒钟</p>
         </div>
 
         <!-- 报告内容 -->
@@ -121,20 +133,22 @@
 
     <!-- 配置按钮（右下角固定） -->
     <button onclick="showConfigModal()"
-            class="fixed bottom-8 right-8 w-14 h-14 bg-zinc-900 border-2 border-cyan-400 rounded-full flex items-center justify-center text-2xl shadow-2xl hover:scale-110 transition-all z-50">
+            class="fixed bottom-8 right-8 w-16 h-16 bg-zinc-900 border-2 border-cyan-400 rounded-full flex items-center justify-center text-3xl shadow-2xl hover:scale-110 active:scale-95 transition-all z-50">
         ⚙️
     </button>
 
     <!-- 配置弹窗 -->
     <div id="configModal" class="config-modal">
-        <div class="config-content w-full max-w-md mx-4 rounded-3xl p-8">
-            <h3 class="text-2xl font-bold text-white mb-8">AI 配置中心</h3>
+        <div class="config-content mx-4 rounded-3xl p-9">
+            <h3 class="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+                ⚙️ AI 配置中心
+            </h3>
 
-            <div class="space-y-6">
+            <div class="space-y-7">
                 <div>
-                    <label class="block text-sm text-gray-400 mb-1.5">提供商</label>
+                    <label class="block text-sm text-gray-400 mb-2">提供商</label>
                     <select id="provider" onchange="autoFillBaseURL()"
-                            class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-white focus:outline-none focus:border-cyan-400">
+                            class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl p-4 text-white focus:outline-none focus:border-cyan-400">
                         <option value="deepseek">DeepSeek</option>
                         <option value="qwen" selected>通义千问 (Qwen)</option>
                         <option value="openai">OpenAI</option>
@@ -143,31 +157,31 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm text-gray-400 mb-1.5">模型名称</label>
+                    <label class="block text-sm text-gray-400 mb-2">模型名称</label>
                     <input id="model_name" type="text" value="qwen-plus"
-                           class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-white focus:outline-none focus:border-cyan-400">
+                           class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl p-4 text-white focus:outline-none focus:border-cyan-400">
                 </div>
 
                 <div>
-                    <label class="block text-sm text-gray-400 mb-1.5">API Key（留空使用 .env）</label>
+                    <label class="block text-sm text-gray-400 mb-2">API Key（留空使用 .env）</label>
                     <input id="api_key" type="password" placeholder="sk-..."
-                           class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-white focus:outline-none focus:border-cyan-400">
+                           class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl p-4 text-white focus:outline-none focus:border-cyan-400">
                 </div>
 
                 <div>
-                    <label class="block text-sm text-gray-400 mb-1.5">Base URL</label>
+                    <label class="block text-sm text-gray-400 mb-2">Base URL</label>
                     <input id="base_url" type="text"
-                           class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-white focus:outline-none focus:border-cyan-400">
+                           class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl p-4 text-white focus:outline-none focus:border-cyan-400">
                 </div>
             </div>
 
-            <div class="flex gap-4 mt-10">
+            <div class="flex gap-4 mt-12">
                 <button onclick="saveConfig()"
-                        class="flex-1 py-4 bg-emerald-500 hover:bg-emerald-600 rounded-2xl font-bold text-lg">
+                        class="flex-1 py-4 bg-emerald-500 hover:bg-emerald-600 rounded-2xl font-bold text-lg transition-colors">
                     保存配置
                 </button>
                 <button onclick="hideConfigModal()"
-                        class="flex-1 py-4 bg-zinc-700 hover:bg-zinc-600 rounded-2xl font-bold text-lg">
+                        class="flex-1 py-4 bg-zinc-700 hover:bg-zinc-600 rounded-2xl font-bold text-lg transition-colors">
                     取消
                 </button>
             </div>
@@ -230,11 +244,12 @@ async function saveConfig() {
             body: JSON.stringify(data)
         });
         const result = await res.json();
+
         if (result.success) {
             alert('✅ 配置保存成功！');
             hideConfigModal();
         } else {
-            alert('❌ ' + (result.message || result.error));
+            alert('❌ ' + (result.message || '保存失败'));
         }
     } catch (e) {
         alert('网络错误，请稍后重试');
@@ -250,7 +265,9 @@ async function generateReport(type) {
     loading.classList.remove('hidden');
     reportArea.innerHTML = '';
 
-    const url = type === 'monitor' ? '/logs/api/ai-report/' : '/logs/api/ai-analyze-logs/';
+    const url = type === 'monitor'
+        ? '/logs/api/ai-report/'
+        : '/logs/api/ai-analyze-logs/';
 
     try {
         const res = await fetch(url, { method: 'POST' });
@@ -260,14 +277,14 @@ async function generateReport(type) {
 
         if (json.success) {
             reportTitle.textContent = type === 'monitor' ? '监控数据诊断报告' : '系统日志诊断报告';
-            document.getElementById('modelInfo').textContent = json.model_used || '';
+            document.getElementById('modelInfo').textContent = json.model_used || '未知模型';
             reportArea.innerHTML = json.report.replace(/\n/g, '<br>');
         } else {
-            reportArea.innerHTML = `<p class="text-red-400 text-center py-10">❌ ${json.error || '生成失败'}</p>`;
+            reportArea.innerHTML = `<p class="text-red-400 text-center py-16">❌ ${json.error || '生成失败，请检查配置'}</p>`;
         }
     } catch (e) {
         loading.classList.add('hidden');
-        reportArea.innerHTML = `<p class="text-red-400 text-center py-10">❌ 请求失败，请检查配置</p>`;
+        reportArea.innerHTML = `<p class="text-red-400 text-center py-16">❌ 请求失败，请检查网络或 AI 配置</p>`;
     }
 }
 

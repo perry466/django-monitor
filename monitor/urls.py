@@ -3,6 +3,8 @@ from django.urls import path
 from . import api
 from . import views
 
+
+app_name = 'monitor'
 urlpatterns = [
     # ==================== 页面路由 ====================
     path('ping/', views.ping, name='ping'),

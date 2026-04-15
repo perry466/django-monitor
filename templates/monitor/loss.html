@@ -1,158 +1,162 @@
 {% extends "base.html" %}
 
-{% block title %}丢包率测试 - NEON MONITOR{% endblock %}
+{% block title %}丢包率监控 - NEON MONITOR{% endblock %}
 
 {% block extra_style %}
 <style>
-    .loss-page {
-        max-width: 1480px;
-        margin: 0 auto;
-        padding: 20px 30px;
+    .neon-card {
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(0, 245, 212, 0.4);
+        box-shadow: 0 0 25px rgba(0, 245, 212, 0.3);
+        transition: all 0.4s ease;
     }
-
-    .page-title {
-        font-family: 'Orbitron', sans-serif;
-        font-size: 2.8rem;
-        letter-spacing: 2px;
-        color: #00f5d4;
-        margin-bottom: 6px;
-    }
-
-    .subtitle {
-        color: #88f0e0;
-        font-size: 1.15rem;
-    }
-
-    .refresh-btn {
-        background: transparent;
-        border: 2px solid #00f5d4;
-        color: #00f5d4;
-        padding: 12px 32px;
-        border-radius: 50px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.25s ease;
-    }
-    .refresh-btn:hover {
-        background: #00f5d4;
-        color: #0a0e17;
-    }
-
-    .cards-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
-        gap: 20px;
-        margin: 40px 0 50px;
-    }
-
-    .monitor-card {
-        background: rgba(15, 23, 42, 0.88);
-        border: 1px solid rgba(0, 245, 212, 0.3);
-        border-radius: 16px;
-        padding: 24px;
-        transition: transform 0.2s ease;
-    }
-
-    .monitor-card:hover {
-        transform: translateY(-3px);
+    .neon-card:hover {
+        box-shadow: 0 0 40px rgba(0, 245, 212, 0.5);
+        transform: translateY(-6px);
     }
 
     .loss-value {
         font-family: 'Orbitron', sans-serif;
-        font-size: 4.2rem;
+        font-size: clamp(2.8rem, 8vw, 4.5rem);
         font-weight: 700;
         line-height: 1;
         margin: 12px 0 8px;
     }
 
-    .bar-container {
-        margin-top: 18px;
+    .refresh-btn {
+        background: rgba(0, 245, 212, 0.08);
+        border: 2px solid #00f5d4;
+        color: #00f5d4;
+        padding: 14px 36px;
+        border-radius: 9999px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 20px rgba(0, 245, 212, 0.35);
+    }
+    .refresh-btn:hover {
+        background: #00f5d4;
+        color: #0a0e17;
+        box-shadow: 0 0 30px rgba(0, 245, 212, 0.6);
+        transform: translateY(-2px);
     }
 
     .bar {
-        height: 14px;
-        background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+        height: 16px;
+        background: linear-gradient(90deg, #22c55e, #eab308, #f97316, #ef4444);
         border-radius: 9999px;
-        transition: width 0.6s ease;
+        transition: width 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .status {
-        margin-top: 10px;
-        padding: 6px 16px;
-        border-radius: 30px;
+        padding: 8px 20px;
+        border-radius: 9999px;
         font-size: 0.95rem;
         font-weight: 600;
-        display: inline-block;
-    }
-
-    .comparison-section {
-        background: rgba(15, 23, 42, 0.85);
-        border: 1px solid rgba(0, 245, 212, 0.25);
-        border-radius: 16px;
-        padding: 28px;
-        margin-top: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="loss-page">
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px;">
-        <div>
-            <h1 class="page-title">📉 丢包率监控</h1>
-            <p class="subtitle">实时对比四条骨干线路 • 每分钟自动更新</p>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+
+    <!-- 标题栏 -->
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
+        <div class="flex items-center gap-4">
+            <div class="text-6xl">📉</div>
+            <div>
+                <h1 class="text-3xl sm:text-4xl font-bold tracking-tighter text-white">丢包率监控</h1>
+                <p class="text-[#88f0e0] mt-1 text-base sm:text-lg">
+                    实时对比骨干线路 • 每分钟自动更新
+                </p>
+            </div>
         </div>
-        <button onclick="refreshLossData()" class="refresh-btn">🔄 刷新数据</button>
+
+        <button onclick="refreshLossData()" class="refresh-btn w-full sm:w-auto justify-center">
+            <span class="text-xl">🔄</span>
+            立即刷新
+        </button>
     </div>
 
-    <!-- 4个监控卡片（现在会根据配置动态生成） -->
-    <div class="cards-grid" id="cards-grid"></div>
+    <!-- 动态监控卡片 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-14" id="cards-grid">
+        <!-- JS 动态生成 -->
+    </div>
 
     <!-- 横向对比条形图 -->
-    <div class="comparison-section">
-        <h2 style="font-family: 'Orbitron', sans-serif; color: #00f5d4; margin-bottom: 20px; font-size: 1.65rem;">
+    <div class="neon-card rounded-3xl p-8">
+        <h2 class="text-2xl font-semibold text-cyan-400 mb-8 flex items-center gap-3">
             📊 当前丢包率横向对比
         </h2>
-        <div id="bar-charts"></div>
+        <div id="bar-charts" class="space-y-8">
+            <!-- JS 动态生成条形图 -->
+        </div>
     </div>
 
-    <div style="margin-top: 30px; padding: 16px 20px; background: rgba(249, 115, 22, 0.08); border-left: 5px solid #f59e0b; color: #fcd34d; border-radius: 8px;">
-        <strong>参考阈值：</strong>
-        ≤ 1%（优秀） • 1%~5%（需关注） • 5%~10%（较差） • >10%（严重）
+    <!-- 参考阈值 -->
+    <div class="mt-10 p-6 bg-zinc-900/70 border border-amber-500/30 rounded-2xl text-sm">
+        <strong class="text-amber-400">参考阈值：</strong><br>
+        ≤ 1%（<span class="text-emerald-400">优秀</span>） •
+        1%~5%（<span class="text-yellow-400">需关注</span>） •
+        5%~10%（<span class="text-orange-400">较差</span>） •
+        >10%（<span class="text-red-400">严重</span>）
     </div>
+
 </div>
 {% endblock %}
 
 {% block extra_script %}
-<script>
-// ====================== 核心修改点 ======================
-let cardsCreated = false;
-let lossChartData = [];
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-// 动态创建卡片（根据配置页修改的目标自动生成）
-function createCardsFromData(results) {
+<script>
+let cardsCreated = false;
+
+// 创建动态卡片
+function createCards(results) {
     const container = document.getElementById('cards-grid');
     container.innerHTML = '';
 
     results.forEach(item => {
-        const targetName = item.target;                    // API 返回的名称
-        const safeId = targetName.replace(/\./g, '-');     // 防止 id 带点号问题
+        const loss = parseFloat(item.packet_loss) || 0;
+        const targetName = item.target || '未知目标';
+        const safeId = targetName.replace(/[^a-zA-Z0-9]/g, '-');
+
+        let statusHTML = '';
+        let color = '#22c55e';
+
+        if (loss > 10) {
+            color = '#ef4444';
+            statusHTML = `<span class="status" style="background:rgba(239,68,68,0.15); color:#ef4444;">严重</span>`;
+        } else if (loss > 5) {
+            color = '#f97316';
+            statusHTML = `<span class="status" style="background:rgba(249,115,22,0.15); color:#f97316;">较差</span>`;
+        } else if (loss > 1) {
+            color = '#eab308';
+            statusHTML = `<span class="status" style="background:rgba(234,179,8,0.15); color:#eab308;">需关注</span>`;
+        } else {
+            statusHTML = `<span class="status" style="background:rgba(34,197,94,0.15); color:#22c55e;">优秀</span>`;
+        }
 
         const cardHTML = `
-            <div class="monitor-card" id="card-${safeId}">
-                <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
-                    <div style="font-size:2.6rem;">🌐</div>
-                    <div>
-                        <h3 style="margin:0; color:#fff; font-size:1.45rem;">${targetName}</h3>
-                        <p style="margin:4px 0 0; color:#88f0e0; font-size:0.95rem;">${targetName}</p>
+            <div class="neon-card p-7 rounded-3xl">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="text-4xl">🌐</div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-xl font-semibold text-white truncate">${targetName}</h3>
+                        <p class="text-xs text-cyan-300 mt-1">${targetName}</p>
                     </div>
                 </div>
 
-                <div id="loss-value-${safeId}" class="loss-value" style="color:#22c55e;">0.0</div>
-                <div style="color:#88f0e0; font-size:1.05rem;">丢包率 %</div>
+                <div id="loss-value-${safeId}" class="loss-value" style="color: ${color};">${loss.toFixed(1)}</div>
+                <div class="text-cyan-300 text-sm">丢包率 %</div>
 
-                <div id="status-${safeId}" class="status" style="background:rgba(34,197,94,0.2); color:#22c55e;">
-                    优秀
+                <div class="mt-8">
+                    ${statusHTML}
                 </div>
             </div>
         `;
@@ -160,16 +164,14 @@ function createCardsFromData(results) {
     });
 }
 
-// 更新卡片数据（保持你原来的逻辑）
+// 更新卡片数值（实时刷新用）
 function updateCards(results) {
     results.forEach(item => {
         const loss = parseFloat(item.packet_loss) || 0;
-        const targetName = item.target;
-        const safeId = targetName.replace(/\./g, '-');
+        const targetName = item.target || '未知目标';
+        const safeId = targetName.replace(/[^a-zA-Z0-9]/g, '-');
 
         const valueEl = document.getElementById(`loss-value-${safeId}`);
-        const statusEl = document.getElementById(`status-${safeId}`);
-
         if (valueEl) {
             valueEl.textContent = loss.toFixed(1);
             let color = '#22c55e';
@@ -178,28 +180,10 @@ function updateCards(results) {
             else if (loss > 1) color = '#eab308';
             valueEl.style.color = color;
         }
-
-        if (statusEl) {
-            let text = '优秀';
-            let bg = 'rgba(34,197,94,0.2)';
-            let textColor = '#22c55e';
-
-            if (loss > 10) {
-                text = '严重'; bg = 'rgba(239,68,68,0.2)'; textColor = '#ef4444';
-            } else if (loss > 5) {
-                text = '较差'; bg = 'rgba(249,115,22,0.2)'; textColor = '#f97316';
-            } else if (loss > 1) {
-                text = '需关注'; bg = 'rgba(234,179,8,0.2)'; textColor = '#eab308';
-            }
-
-            statusEl.textContent = text;
-            statusEl.style.background = bg;
-            statusEl.style.color = textColor;
-        }
     });
 }
 
-// 渲染横向对比条形图（保持你原来的逻辑）
+// 渲染横向对比条形图
 function renderBarCharts(results) {
     const container = document.getElementById('bar-charts');
     container.innerHTML = '';
@@ -211,16 +195,16 @@ function renderBarCharts(results) {
         else if (loss > 5) color = '#f97316';
         else if (loss > 1) color = '#eab308';
 
-        const widthPercent = Math.min(loss * 8, 100);
+        const widthPercent = Math.min(loss * 7 + 8, 100);   // 让低丢包也有视觉
 
         const barHTML = `
-            <div style="margin-bottom: 20px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.95rem;">
-                    <span>${item.target}</span>
+            <div class="mb-7">
+                <div class="flex justify-between text-sm mb-3">
+                    <span class="text-white">${item.target}</span>
                     <span style="color:${color}; font-weight:600;">${loss.toFixed(1)}%</span>
                 </div>
-                <div style="background:rgba(255,255,255,0.08); height:14px; border-radius:9999px; overflow:hidden;">
-                    <div class="bar" style="width:${widthPercent}%; background:${color};"></div>
+                <div class="h-4 bg-zinc-900 rounded-full overflow-hidden">
+                    <div class="bar" style="width: ${widthPercent}%; background: ${color};"></div>
                 </div>
             </div>
         `;
@@ -228,25 +212,23 @@ function renderBarCharts(results) {
     });
 }
 
-// ====================== 刷新函数（关键修改） ======================
+// 刷新数据
 async function refreshLossData() {
     const btn = document.querySelector('.refresh-btn');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '🔄 加载中...';
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = `<span class="animate-spin inline-block mr-2">⟳</span>加载中...`;
     btn.disabled = true;
 
     try {
-        // 【重点】改成调用新的 multi-loss API
         const res = await fetch('/monitor/api/multi-loss/');
         const json = await res.json();
 
-        if (json.code === 0) {
-            const results = json.data?.results || [];
-            lossChartData = results;
+        if (json.code === 0 && json.data && json.data.results) {
+            const results = json.data.results;
 
-            // 第一次加载时动态创建卡片
+            // 第一次加载时创建卡片
             if (!cardsCreated) {
-                createCardsFromData(results);
+                createCards(results);
                 cardsCreated = true;
             }
 
@@ -254,17 +236,17 @@ async function refreshLossData() {
             renderBarCharts(results);
         }
     } catch (err) {
-        console.error('获取丢包率数据失败:', err);
+        console.error('丢包率数据加载失败:', err);
     } finally {
-        btn.innerHTML = originalText;
+        btn.innerHTML = originalHTML;
         btn.disabled = false;
     }
 }
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
-    refreshLossData();           // 第一次加载就会创建卡片
-    setInterval(refreshLossData, 60000);   // 每分钟自动刷新
+    refreshLossData();                    // 页面加载立即刷新
+    setInterval(refreshLossData, 60000);  // 每分钟自动刷新
 });
 </script>
 {% endblock %}

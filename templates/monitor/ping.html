@@ -2,63 +2,116 @@
 
 {% block title %}多目标 Ping 延迟监控 - NEON MONITOR{% endblock %}
 
-{% block content %}
-<div class="min-h-screen bg-zinc-950 text-white pb-12">
+{% block extra_style %}
+<style>
+    .neon-card {
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(0, 245, 212, 0.4);
+        box-shadow: 0 0 25px rgba(0, 245, 212, 0.3);
+        transition: all 0.4s ease;
+    }
+    .neon-card:hover {
+        box-shadow: 0 0 40px rgba(0, 245, 212, 0.5);
+        transform: translateY(-6px);
+    }
 
-    <!-- 顶部标题栏（完全保留你原来的） -->
-    <div class="sticky top-0 z-50 h-16 border-b border-zinc-800 bg-zinc-900/95 backdrop-blur-md px-8 flex items-center justify-between">
+    .ping-value {
+        font-family: 'Orbitron', sans-serif;
+        font-size: clamp(2.8rem, 7.5vw, 4.2rem);
+        font-weight: 700;
+        line-height: 1;
+        color: #00f5d4;
+        text-shadow: 0 0 15px #00f5d4;
+    }
+
+    .refresh-btn {
+        background: rgba(0, 245, 212, 0.08);
+        border: 2px solid #00f5d4;
+        color: #00f5d4;
+        padding: 14px 36px;
+        border-radius: 9999px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 20px rgba(0, 245, 212, 0.35);
+    }
+    .refresh-btn:hover {
+        background: #00f5d4;
+        color: #0a0e17;
+        box-shadow: 0 0 30px rgba(0, 245, 212, 0.6);
+        transform: translateY(-2px);
+    }
+
+    .chart-container {
+        position: relative;
+        height: 460px;
+    }
+
+    @media (max-width: 640px) {
+        .chart-container {
+            height: 380px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+
+    <!-- 标题栏 -->
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
         <div class="flex items-center gap-4">
-            <div class="w-9 h-9 bg-gradient-to-br from-cyan-400 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-cyan-500/30">
-                📡
-            </div>
+            <div class="text-6xl">📡</div>
             <div>
-                <h1 class="text-2xl font-semibold tracking-tight">多目标 Ping 延迟监控</h1>
-                <p class="text-xs text-zinc-400 -mt-0.5">实时监测你配置的所有目标 • 每分钟自动更新</p>
+                <h1 class="text-3xl sm:text-4xl font-bold tracking-tighter text-white">多目标 Ping 延迟监控</h1>
+                <p class="text-[#88f0e0] mt-1 text-base sm:text-lg">
+                    实时监测你配置的所有目标 • 每分钟自动更新
+                </p>
             </div>
         </div>
 
-        <button id="refresh-btn"
-                class="flex items-center gap-2 px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-cyan-400 rounded-2xl text-sm font-medium transition-all active:scale-95">
-            <span class="text-lg">🔄</span>
-            <span>刷新数据</span>
+        <button id="refresh-btn" class="refresh-btn w-full sm:w-auto justify-center">
+            <span class="text-xl">🔄</span>
+            立即刷新
         </button>
     </div>
 
-    <div class="p-8 max-w-screen-2xl mx-auto">
+    <!-- 动态延迟卡片 -->
+    <div id="dynamic-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-14">
+        <!-- JavaScript 动态生成卡片 -->
+    </div>
 
-        <!-- 动态卡片容器（保留你原来的） -->
-        <div id="dynamic-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <!-- JavaScript 动态生成卡片 -->
+    <!-- 延迟趋势图 -->
+    <div class="neon-card rounded-3xl p-6 sm:p-10">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+            <h2 class="text-2xl font-semibold text-cyan-400 flex items-center gap-3">
+                📈 延迟趋势（最近 20 次采样）
+            </h2>
+            <div id="last-update" class="font-mono text-sm text-cyan-300">
+                最后更新: —
+            </div>
         </div>
 
-        <!-- 图表区域（保留你原来的结构） -->
-        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-7">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center gap-3">
-                    <span class="text-cyan-400">📈</span>
-                    <h2 class="text-xl font-semibold">延迟趋势（最近 20 次采样）</h2>
-                </div>
-                <div id="last-update" class="text-xs text-zinc-500 font-mono">最后更新: —</div>
-            </div>
-
-            <div class="relative" style="height: 580px;">
-                <canvas id="latencyChart" class="w-full h-full"></canvas>
-            </div>
+        <div class="chart-container">
+            <canvas id="latencyChart"></canvas>
         </div>
     </div>
+
 </div>
 {% endblock %}
 
 {% block extra_script %}
-<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <script>
-// Chart.js 初始化
 let latencyChart = null;
 
 function initChart() {
     const ctx = document.getElementById('latencyChart');
+    if (!ctx) return;
+
     latencyChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -66,92 +119,95 @@ function initChart() {
             datasets: []
         },
         options: {
-            maintainAspectRatio: false,
             responsive: true,
+            maintainAspectRatio: false,
             interaction: { intersect: false, mode: 'index' },
             plugins: {
                 legend: {
                     position: 'top',
                     align: 'start',
-                    labels: { color: '#d1d5db', usePointStyle: true, padding: 20, font: { size: 13 } }
+                    labels: {
+                        color: '#a0f0e8',
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { size: 13 }
+                    }
                 },
                 tooltip: {
-                    backgroundColor: '#27272a',
-                    borderColor: '#52525b',
-                    padding: 12
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    titleColor: '#67e8f9',
+                    bodyColor: '#e2e8f0',
+                    padding: 14
                 }
             },
             scales: {
                 x: {
-                    grid: { color: '#3f3f46' },
-                    ticks: { color: '#71717a', font: { size: 11 } }
+                    grid: { color: 'rgba(0, 245, 212, 0.08)' },
+                    ticks: { color: '#94a3b8', font: { size: 11 } }
                 },
                 y: {
-                    grid: { color: '#3f3f46' },
+                    min: 0,
+                    suggestedMax: 300,
+                    grid: { color: 'rgba(0, 245, 212, 0.08)' },
                     ticks: {
-                        color: '#71717a',
+                        color: '#94a3b8',
                         callback: v => v + ' ms',
-                        stepSize: 40
+                        stepSize: 50
                     }
-                    // 这里我们会在后面动态修改 min 和 max
                 }
             },
             elements: {
-                line: { tension: 0.4, borderWidth: 3 },
-                point: { radius: 3, hoverRadius: 6 }
+                line: { tension: 0.4, borderWidth: 3.5 },
+                point: { radius: 2.5, hoverRadius: 7 }
             }
         }
     });
 }
 
-// 新增：智能计算Y轴最大值（解决延迟太高看不到点的问题）
+// 智能计算 Y 轴最大值
 function calculateYMax(values) {
-    if (!values || values.length === 0) return 200;
-
-    const maxValue = Math.max(...values);
-    // 给一点缓冲空间（最高值的 1.25 倍）
-    let maxY = Math.ceil(maxValue * 1.25);
-
-    // 让刻度更漂亮（向上取整到 50、100、200、500 等）
-    if (maxY <= 100) return 120;
-    if (maxY <= 200) return 250;
-    if (maxY <= 500) return 600;
-    return Math.ceil(maxY / 100) * 100;
+    if (!values || values.length === 0) return 300;
+    const maxVal = Math.max(...values);
+    return Math.ceil(maxVal * 1.35 / 50) * 50;   // 向上取整到 50 的倍数
 }
 
-// 渲染卡片（完全保留你原来的逻辑）
+// 渲染动态卡片
 function renderCards(results) {
     const container = document.getElementById('dynamic-cards');
     container.innerHTML = '';
 
     const colors = ['#22d3ee', '#a855f7', '#f472b6', '#fb923c'];
 
-    results.forEach((item, i) => {
-        const color = colors[i % colors.length];
-        const loss = item.packet_loss || 0;
-        const isGood = item.ping_time !== null && loss < 8;
-        const statusColor = isGood ? '#10b981' : '#ef4444';
+    results.forEach((item, index) => {
+        const color = colors[index % colors.length];
+        const pingTime = parseFloat(item.ping_time) || 0;
+        const loss = parseFloat(item.packet_loss) || 0;
+        const isGood = pingTime > 0 && loss < 5;
 
         const cardHTML = `
-            <div class="bg-zinc-900/90 border border-zinc-800 hover:border-[${color}]/50 rounded-3xl p-5 transition-all group" style="border-color: ${color}30;">
-                <div class="flex justify-between items-start">
+            <div class="neon-card p-6 rounded-3xl">
+                <div class="flex justify-between items-start mb-6">
                     <div class="flex items-center gap-3">
-                        <span class="text-2xl">🌐</span>
+                        <span class="text-3xl">🌐</span>
                         <div>
-                            <div class="font-mono text-lg font-semibold">${item.target}</div>
+                            <div class="font-semibold text-lg text-white">${item.target}</div>
+                            <div class="text-xs text-cyan-300">${item.target}</div>
                         </div>
                     </div>
-                    <div class="w-4 h-4 mt-1 rounded-full ring-4 ring-offset-2 ring-offset-zinc-900"
-                         style="background-color: ${statusColor}; box-shadow: 0 0 0 4px ${statusColor}30;">
-                    </div>
+                    <div class="w-4 h-4 rounded-full ${isGood ? 'bg-emerald-400' : 'bg-red-400'}
+                                 shadow-[0_0_12px] ${isGood ? 'shadow-emerald-400' : 'shadow-red-400'}"></div>
                 </div>
-                <div class="mt-6 flex items-baseline gap-1">
-                    <span class="text-4xl font-semibold tabular-nums">${(item.ping_time || 0).toFixed(1)}</span>
-                    <span class="text-zinc-400 text-lg">ms</span>
+
+                <div class="flex items-baseline gap-1">
+                    <span class="ping-value">${pingTime.toFixed(1)}</span>
+                    <span class="text-cyan-300 text-xl mt-2">ms</span>
                 </div>
-                <div class="mt-5 flex justify-between text-sm">
-                    <span class="text-zinc-400">丢包率</span>
-                    <span class="font-mono ${loss > 5 ? 'text-red-400' : 'text-emerald-400'}">${loss.toFixed(1)}%</span>
+
+                <div class="mt-8 flex justify-between items-center text-sm">
+                    <span class="text-cyan-300">丢包率</span>
+                    <span class="font-mono ${loss > 5 ? 'text-red-400' : 'text-emerald-400'}">
+                        ${loss.toFixed(1)}%
+                    </span>
                 </div>
             </div>
         `;
@@ -159,57 +215,58 @@ function renderCards(results) {
     });
 }
 
-// 更新图表（只修改这里）
+// 更新图表
 function updateChart(history) {
     if (!latencyChart) return;
 
     latencyChart.data.labels = history.labels || Array(20).fill('');
     latencyChart.data.datasets = history.datasets || [];
 
-    // === 关键修复：动态设置 Y 轴最大值 ===
+    // 动态调整 Y 轴范围
     let allValues = [];
     if (history.datasets) {
-        history.datasets.forEach(dataset => {
-            if (dataset.data) {
-                allValues = allValues.concat(dataset.data);
-            }
+        history.datasets.forEach(ds => {
+            if (ds.data) allValues = allValues.concat(ds.data);
         });
     }
-
-    const maxY = calculateYMax(allValues);
-    latencyChart.options.scales.y.max = maxY;
-    latencyChart.options.scales.y.min = 0;
+    latencyChart.options.scales.y.max = calculateYMax(allValues);
 
     latencyChart.update('none');
 }
 
-// 获取数据（保留你原来的逻辑）
+// 获取数据
 async function fetchData() {
+    const btn = document.getElementById('refresh-btn');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = `<span class="animate-spin inline-block mr-2">⟳</span>刷新中...`;
+    btn.disabled = true;
+
     try {
         const res = await fetch('/monitor/api/multi-ping/');
         const json = await res.json();
 
         if (json.code === 0 && json.data) {
-            renderCards(json.data.results);
-            updateChart(json.data.history);
-            document.getElementById('last-update').textContent = `最后更新: ${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`;
+            renderCards(json.data.results || []);
+            updateChart(json.data.history || {});
+
+            const now = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+            document.getElementById('last-update').textContent = `最后更新: ${now}`;
         }
     } catch (e) {
-        console.error('Ping 数据加载失败', e);
+        console.error('Ping 数据加载失败:', e);
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
     }
 }
 
+// 初始化
 document.addEventListener('DOMContentLoaded', () => {
     initChart();
     fetchData();
 
-    // 手动刷新按钮
-    document.getElementById('refresh-btn').addEventListener('click', () => {
-        const btn = document.getElementById('refresh-btn');
-        const orig = btn.innerHTML;
-        btn.innerHTML = `<span class="animate-spin inline-block">⟳</span> 刷新中...`;
-        fetchData().finally(() => { btn.innerHTML = orig; });
-    });
+    // 手动刷新
+    document.getElementById('refresh-btn').addEventListener('click', fetchData);
 
     // 每分钟自动刷新
     setInterval(fetchData, 60000);

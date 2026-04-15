@@ -2,10 +2,222 @@
 
 {% block title %}多目标监控配置 - NEON MONITOR{% endblock %}
 
+{% block extra_style %}
+<style>
+    .neon-card {
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(0, 245, 212, 0.4);
+        box-shadow: 0 0 25px rgba(0, 245, 212, 0.3);
+        transition: all 0.3s ease;
+    }
+    .neon-card:hover {
+        box-shadow: 0 0 35px rgba(0, 245, 212, 0.45);
+    }
+
+    .config-container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 20px 16px;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .page-header h1 {
+        font-size: 2.6rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 8px;
+    }
+
+    .page-header p {
+        color: #88f0e0;
+        font-size: 1.1rem;
+    }
+
+    /* Tab 导航 */
+    .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 32px;
+        justify-content: center;
+    }
+
+    .tab-button {
+        padding: 14px 28px;
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(0, 245, 212, 0.3);
+        color: #a0f0e8;
+        border-radius: 9999px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+
+    .tab-button.active,
+    .tab-button:hover {
+        background: #00f5d4;
+        color: #0a0e17;
+        border-color: #00f5d4;
+        box-shadow: 0 0 20px rgba(0, 245, 212, 0.5);
+    }
+
+    /* Tab 内容 */
+    .tab-content {
+        display: none;
+    }
+    .tab-content.active {
+        display: block;
+    }
+
+    .targets-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+    }
+
+    .target-card {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(0, 245, 212, 0.3);
+        border-radius: 16px;
+        padding: 24px;
+        transition: all 0.3s ease;
+    }
+
+    .target-card:hover {
+        border-color: #00f5d4;
+        box-shadow: 0 0 25px rgba(0, 245, 212, 0.25);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #94a3b8;
+        font-size: 0.95rem;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 12px 16px;
+        background: #0f172a;
+        border: 1px solid #475569;
+        border-radius: 8px;
+        color: #e2e8f0;
+        font-size: 1rem;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #00f5d4;
+        box-shadow: 0 0 0 3px rgba(0, 245, 212, 0.2);
+    }
+
+    /* 开关 */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 54px;
+        height: 30px;
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #334155;
+        transition: .4s;
+        border-radius: 50px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 24px;
+        width: 24px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked + .slider {
+        background-color: #22c55e;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(24px);
+    }
+
+    .action-bar {
+        text-align: center;
+        margin: 50px 0 30px;
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .btn-save, .btn-refresh {
+        padding: 14px 36px;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 1.05rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-save {
+        background: #22c55e;
+        color: #fff;
+        border: none;
+    }
+
+    .btn-refresh {
+        background: transparent;
+        color: #00f5d4;
+        border: 2px solid #00f5d4;
+    }
+
+    .btn-save:hover { background: #16a34a; }
+    .btn-refresh:hover { background: #00f5d4; color: #0a0e17; }
+
+    .status {
+        padding: 14px 24px;
+        border-radius: 12px;
+        text-align: center;
+        font-weight: 600;
+        margin: 20px 0;
+    }
+    .status.success { background: rgba(16, 185, 129, 0.2); color: #4ade80; }
+    .status.error   { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="config-page">
-    <h1>🌐 多目标监控配置</h1>
-    <p>为不同监控类型分别设置监测对象。页面加载时已显示当前正在监测的目标。</p>
+<div class="config-container">
+
+    <div class="page-header">
+        <h1 class="text-4xl font-bold tracking-tighter text-white">🌐 多目标监控配置</h1>
+        <p class="text-[#88f0e0] mt-3 text-lg">为不同监控类型分别设置监测对象</p>
+    </div>
 
     <!-- Tab 导航 -->
     <div class="tabs">
@@ -17,25 +229,26 @@
 
     <!-- Tab 内容 -->
     <div id="tab-ping" class="tab-content active">
-        <h2>Ping & 丢包率 - 当前监测对象</h2>
+        <h2 class="text-2xl font-semibold text-cyan-400 mb-6">Ping & 丢包率 - 当前监测对象</h2>
         <div class="targets-grid" id="grid-ping"></div>
     </div>
 
     <div id="tab-http" class="tab-content">
-        <h2>HTTP响应时间 - 当前监测对象</h2>
+        <h2 class="text-2xl font-semibold text-cyan-400 mb-6">HTTP响应时间 - 当前监测对象</h2>
         <div class="targets-grid" id="grid-http"></div>
     </div>
 
     <div id="tab-jitter" class="tab-content">
-        <h2>网络抖动 - 当前监测对象</h2>
+        <h2 class="text-2xl font-semibold text-cyan-400 mb-6">网络抖动 - 当前监测对象</h2>
         <div class="targets-grid" id="grid-jitter"></div>
     </div>
 
     <div id="tab-dns" class="tab-content">
-        <h2>DNS解析时间 - 当前监测对象</h2>
+        <h2 class="text-2xl font-semibold text-cyan-400 mb-6">DNS解析时间 - 当前监测对象</h2>
         <div class="targets-grid" id="grid-dns"></div>
     </div>
 
+    <!-- 操作栏 -->
     <div class="action-bar">
         <button onclick="saveCurrentTab()" class="btn-save">💾 保存当前分类配置</button>
         <button onclick="loadCurrentTab()" class="btn-refresh">🔄 刷新当前分类</button>
@@ -50,34 +263,40 @@
 // 当前激活的Tab
 let currentTab = 'ping';
 
-// 创建卡片
+// 创建单个目标卡片
 function createTargetCard(index) {
     const card = document.createElement('div');
-    card.className = 'target-card';
+    card.className = 'target-card neon-card';
     card.innerHTML = `
-        <h3>监测目标 ${index + 1}</h3>
+        <h3 style="margin-bottom: 20px; color: #67e8f9;">监测目标 ${index + 1}</h3>
+
         <div class="form-group">
             <label>目标名称</label>
-            <input type="text" class="name-input" placeholder="例如: Google DNS" value="">
+            <input type="text" class="name-input" placeholder="例如: Google DNS">
         </div>
+
         <div class="form-group">
             <label>监测地址</label>
-            <input type="text" class="address-input" placeholder="8.8.8.8 或 www.baidu.com" value="">
+            <input type="text" class="address-input" placeholder="8.8.8.8 或 www.baidu.com">
         </div>
+
         <div class="form-group">
             <label>描述（可选）</label>
-            <input type="text" class="desc-input" value="">
+            <input type="text" class="desc-input" placeholder="可选描述">
         </div>
-        <label class="switch">
-            <input type="checkbox" class="active-check" checked>
-            <span class="slider"></span>
-        </label>
-        <span class="switch-label">启用监测</span>
+
+        <div style="display: flex; align-items: center; gap: 12px; margin-top: 20px;">
+            <label class="switch">
+                <input type="checkbox" class="active-check" checked>
+                <span class="slider"></span>
+            </label>
+            <span style="color: #94a3b8;">启用监测</span>
+        </div>
     `;
     return card;
 }
 
-// 渲染4个卡片
+// 渲染空卡片（默认4个）
 function renderEmptyCards(category) {
     const grid = document.getElementById(`grid-${category}`);
     grid.innerHTML = '';
@@ -86,7 +305,7 @@ function renderEmptyCards(category) {
     }
 }
 
-// 填充已保存的数据
+// 填充已保存的目标数据
 function fillTargets(category, savedTargets) {
     const grid = document.getElementById(`grid-${category}`);
     const cards = grid.querySelectorAll('.target-card');
@@ -95,13 +314,14 @@ function fillTargets(category, savedTargets) {
         if (cards[i]) {
             cards[i].querySelector('.name-input').value = target.name || '';
             cards[i].querySelector('.address-input').value = target.address || '';
-            cards[i].querySelector('.desc-input').value = target.description ? target.description.replace('category:' + category, '') : '';
+            cards[i].querySelector('.desc-input').value = target.description ?
+                target.description.replace(`category:${category}`, '').trim() : '';
             cards[i].querySelector('.active-check').checked = target.is_active !== false;
         }
     });
 }
 
-// 加载某个分类的当前监测对象
+// 加载某个分类的数据
 async function loadCategory(category) {
     try {
         const res = await fetch(`/targets/api/get-targets-by-category/?category=${category}`);
@@ -109,12 +329,11 @@ async function loadCategory(category) {
 
         renderEmptyCards(category);
 
-        if (data.status === 'success' && data.targets.length > 0) {
+        if (data.status === 'success' && data.targets && data.targets.length > 0) {
             fillTargets(category, data.targets);
-            console.log(`已加载 ${category} 当前监测目标`);
         } else {
-            // 如果没有数据，显示默认示例
-            const defaultExamples = {
+            // 显示默认示例
+            const defaults = {
                 ping: [
                     {name: "Google DNS", address: "8.8.8.8"},
                     {name: "Cloudflare", address: "1.1.1.1"},
@@ -129,7 +348,7 @@ async function loadCategory(category) {
                 ],
                 jitter: [
                     {name: "Google DNS", address: "8.8.8.8"},
-                    {name: "Cloudflare DNS", address: "1.1.1.1"},
+                    {name: "Cloudflare", address: "1.1.1.1"},
                     {name: "百度", address: "baidu.com"},
                     {name: "114DNS", address: "114.114.114.114"}
                 ],
@@ -141,8 +360,8 @@ async function loadCategory(category) {
                 ]
             };
 
-            if (defaultExamples[category]) {
-                fillTargets(category, defaultExamples[category]);
+            if (defaults[category]) {
+                fillTargets(category, defaults[category]);
             }
         }
     } catch (e) {
@@ -151,7 +370,7 @@ async function loadCategory(category) {
     }
 }
 
-// 保存当前Tab
+// 保存当前 Tab
 async function saveCurrentTab() {
     const grid = document.getElementById(`grid-${currentTab}`);
     const cards = grid.querySelectorAll('.target-card');
@@ -165,9 +384,9 @@ async function saveCurrentTab() {
 
         if (address) {
             targets.push({
-                name: name || `${currentTab} 目标`,
+                name: name || `${currentTab.toUpperCase()} 目标`,
                 address: address,
-                type: 'domain',
+                type: address.includes('http') ? 'url' : 'domain',
                 description: desc,
                 is_active: active
             });
@@ -175,33 +394,37 @@ async function saveCurrentTab() {
     });
 
     if (targets.length === 0) {
-        showMessage('至少填写一个监测地址', 'error');
+        showMessage('请至少填写一个监测地址', 'error');
         return;
     }
 
     try {
         const res = await fetch('/targets/api/sync-targets/', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ category: currentTab, targets: targets })
         });
-        const data = await res.json();
-        showMessage(data.message, data.status === 'success' ? 'success' : 'error');
 
-        // 保存成功后重新加载当前Tab
+        const data = await res.json();
+        showMessage(data.message || '保存成功', data.status === 'success' ? 'success' : 'error');
+
         if (data.status === 'success') {
-            setTimeout(() => loadCategory(currentTab), 600);
+            setTimeout(() => loadCategory(currentTab), 800);
         }
     } catch (e) {
-        showMessage('保存失败，请检查网络', 'error');
+        showMessage('保存失败，请检查网络连接', 'error');
     }
+}
+
+function loadCurrentTab() {
+    loadCategory(currentTab);
 }
 
 function showMessage(msg, type = 'info') {
     const el = document.getElementById('statusMessage');
     el.textContent = msg;
     el.className = `status ${type}`;
-    setTimeout(() => el.textContent = '', 5000);
+    setTimeout(() => { el.textContent = ''; }, 5000);
 }
 
 // Tab 切换
@@ -216,92 +439,10 @@ document.querySelectorAll('.tab-button').forEach(btn => {
     });
 });
 
-// 页面加载时自动加载所有分类的当前监测对象
+// 初始化
 document.addEventListener('DOMContentLoaded', () => {
     const categories = ['ping', 'http', 'jitter', 'dns'];
-    categories.forEach(cat => {
-        loadCategory(cat);
-    });
+    categories.forEach(cat => loadCategory(cat));
 });
 </script>
-
-<style>
-.config-page { max-width: 1200px; margin: 30px auto; padding: 20px; }
-.tabs { display: flex; gap: 8px; margin-bottom: 25px; flex-wrap: wrap; }
-.tab-button {
-    padding: 12px 26px;
-    background: #374151;
-    color: #e2e8f0;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1rem;
-}
-.tab-button.active {
-    background: #22d3ee;
-    color: #0f172a;
-    font-weight: bold;
-}
-
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-
-.targets-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-    gap: 20px;
-}
-.target-card {
-    background: #1f2937;
-    padding: 22px;
-    border-radius: 12px;
-    border: 1px solid #475569;
-}
-.target-card h3 { margin: 0 0 18px 0; color: #60a5fa; }
-.form-group { margin-bottom: 16px; }
-.form-group label { display: block; margin-bottom: 6px; color: #94a3b8; font-size: 0.95rem; }
-.form-group input {
-    width: 100%;
-    padding: 10px 12px;
-    background: #0f172a;
-    border: 1px solid #475569;
-    border-radius: 6px;
-    color: white;
-}
-
-.action-bar { text-align: center; margin: 40px 0 20px; }
-.btn-save, .btn-refresh {
-    padding: 13px 32px;
-    margin: 0 10px;
-    border: none;
-    border-radius: 8px;
-    font-size: 1.05rem;
-    cursor: pointer;
-}
-.btn-save { background: #22c55e; color: white; }
-.btn-refresh { background: #64748b; color: white; }
-
-.switch { position: relative; display: inline-block; width: 52px; height: 28px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider {
-    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #334155; transition: .4s; border-radius: 50px;
-}
-.slider:before {
-    position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px;
-    background-color: white; transition: .4s; border-radius: 50%;
-}
-input:checked + .slider { background-color: #22c55e; }
-input:checked + .slider:before { transform: translateX(24px); }
-
-.status {
-    padding: 15px;
-    border-radius: 8px;
-    text-align: center;
-    font-weight: bold;
-    margin: 15px 0;
-}
-.status.success { background: #14532d; color: #86efac; }
-.status.error { background: #7f1d1d; color: #fda4af; }
-</style>
 {% endblock %}

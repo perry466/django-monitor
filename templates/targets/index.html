@@ -1,277 +1,323 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>网络性能监控</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-        }
-        .input-section {
-            margin-bottom: 30px;
-            padding: 20px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-        }
+{% extends "base.html" %}
+
+{% block title %}网络性能监控 - NEON MONITOR{% endblock %}
+
+{% block extra_style %}
+<style>
+    .neon-card {
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(0, 245, 212, 0.4);
+        box-shadow: 0 0 25px rgba(0, 245, 212, 0.3);
+        transition: all 0.4s ease;
+    }
+    .neon-card:hover {
+        box-shadow: 0 0 40px rgba(0, 245, 212, 0.5);
+    }
+
+    .input-section {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(0, 245, 212, 0.3);
+        border-radius: 20px;
+        padding: 32px;
+        margin-bottom: 40px;
+    }
+
+    .input-row {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 24px;
+    }
+
+    @media (min-width: 640px) {
         .input-row {
-            display: flex;
+            flex-direction: row;
             align-items: center;
-            margin-bottom: 15px;
         }
-        .input-row label {
-            width: 100px;
-            font-weight: bold;
-        }
-        .input-row input {
-            flex: 1;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 18px;
-            cursor: pointer;
-            margin-top: 20px;
-        }
-        .btn:hover {
-            background-color: #0056b3;
-        }
-        .btn:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        .result-section {
-            margin-top: 30px;
-        }
-        .target-card {
-            margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #fafafa;
-        }
-        .target-header {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #333;
-        }
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-        }
-        .metric-item {
-            padding: 10px;
-            background-color: white;
-            border-radius: 4px;
-            border: 1px solid #eee;
-        }
-        .metric-name {
-            font-weight: bold;
-            color: #555;
-            margin-bottom: 5px;
-        }
-        .metric-value {
-            font-size: 16px;
-            color: #007bff;
-        }
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>网络性能监控系统</h1>
+    }
 
-        <div class="input-section">
-            <div class="input-row">
-                <label>目标 1:</label>
-                <input type="text" id="target1" placeholder="请输入IP或域名，例如: 8.8.8.8 或 www.google.com">
-            </div>
-            <div class="input-row">
-                <label>目标 2:</label>
-                <input type="text" id="target2" placeholder="请输入IP或域名">
-            </div>
-            <div class="input-row">
-                <label>目标 3:</label>
-                <input type="text" id="target3" placeholder="请输入IP或域名">
-            </div>
-            <div class="input-row">
-                <label>目标 4:</label>
-                <input type="text" id="target4" placeholder="请输入IP或域名">
-            </div>
+    .input-row label {
+        color: #88f0e0;
+        font-weight: 600;
+        min-width: 80px;
+    }
 
-            <button id="startBtn" class="btn">开始检测</button>
-        </div>
+    .input-row input {
+        flex: 1;
+        padding: 14px 18px;
+        background: #0f172a;
+        border: 1px solid #475569;
+        border-radius: 12px;
+        color: #e2e8f0;
+        font-size: 1.05rem;
+    }
 
-        <div class="result-section" id="resultSection" style="display: none;">
-            <div id="targetResults"></div>
-        </div>
+    .input-row input:focus {
+        outline: none;
+        border-color: #00f5d4;
+        box-shadow: 0 0 0 3px rgba(0, 245, 212, 0.2);
+    }
 
-        <div id="loadingIndicator" class="loading" style="display: none;">
-            正在检测中，请稍候...
-        </div>
+    .btn {
+        width: 100%;
+        padding: 18px;
+        background: linear-gradient(90deg, #00f5d4, #a855f7);
+        color: #0a0e17;
+        border: none;
+        border-radius: 9999px;
+        font-size: 1.15rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 25px rgba(0, 245, 212, 0.5);
+    }
+
+    .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0 35px rgba(0, 245, 212, 0.7);
+    }
+
+    .btn:disabled {
+        background: #475569;
+        color: #94a3b8;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+
+    .result-section {
+        margin-top: 40px;
+    }
+
+    .target-card {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(0, 245, 212, 0.3);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .target-header {
+        font-size: 1.35rem;
+        color: #fff;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(0, 245, 212, 0.2);
+    }
+
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 16px;
+    }
+
+    .metric-item {
+        background: rgba(10, 14, 23, 0.7);
+        padding: 14px;
+        border-radius: 12px;
+    }
+
+    .metric-name {
+        color: #94a3b8;
+        font-size: 0.95rem;
+        margin-bottom: 6px;
+    }
+
+    .metric-value {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.45rem;
+        color: #00f5d4;
+        font-weight: 600;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 60px 20px;
+        color: #67e8f9;
+        font-size: 1.2rem;
+    }
+
+    .status {
+        padding: 16px 24px;
+        border-radius: 12px;
+        text-align: center;
+        margin: 20px 0;
+    }
+    .status.success { background: rgba(16, 185, 129, 0.2); color: #4ade80; }
+    .status.error   { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 py-12">
+
+    <div class="text-center mb-12">
+        <h1 class="text-4xl sm:text-5xl font-bold tracking-tighter text-white mb-4">
+            网络性能监控系统
+        </h1>
+        <p class="text-cyan-300 text-lg">快速检测多个目标的网络性能</p>
     </div>
 
-    <script>
-        // 页面加载时从localStorage恢复输入框内容
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('target1').value = localStorage.getItem('target1') || '8.8.8.8';
-            document.getElementById('target2').value = localStorage.getItem('target2') || 'www.baidu.com';
-            document.getElementById('target3').value = localStorage.getItem('target3') || 'www.qq.com';
-            document.getElementById('target4').value = localStorage.getItem('target4') || 'www.taobao.com';
+    <div class="neon-card input-section">
+        <div class="input-row">
+            <label>目标 1:</label>
+            <input type="text" id="target1" placeholder="例如: 8.8.8.8 或 www.google.com">
+        </div>
+        <div class="input-row">
+            <label>目标 2:</label>
+            <input type="text" id="target2" placeholder="请输入IP或域名">
+        </div>
+        <div class="input-row">
+            <label>目标 3:</label>
+            <input type="text" id="target3" placeholder="请输入IP或域名">
+        </div>
+        <div class="input-row">
+            <label>目标 4:</label>
+            <input type="text" id="target4" placeholder="请输入IP或域名">
+        </div>
+
+        <button id="startBtn" class="btn">开始检测</button>
+    </div>
+
+    <div id="loadingIndicator" class="loading" style="display: none;">
+        正在检测中，请稍候...
+    </div>
+
+    <div class="result-section" id="resultSection" style="display: none;">
+        <div id="targetResults"></div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+// 页面加载时恢复输入框内容
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('target1').value = localStorage.getItem('target1') || '8.8.8.8';
+    document.getElementById('target2').value = localStorage.getItem('target2') || 'www.baidu.com';
+    document.getElementById('target3').value = localStorage.getItem('target3') || 'www.qq.com';
+    document.getElementById('target4').value = localStorage.getItem('target4') || 'www.taobao.com';
+});
+
+// 自动保存输入内容到 localStorage
+['target1','target2','target3','target4'].forEach(id => {
+    const input = document.getElementById(id);
+    input.addEventListener('input', () => {
+        localStorage.setItem(id, input.value);
+    });
+});
+
+// 开始检测
+document.getElementById('startBtn').addEventListener('click', async function() {
+    const btn = this;
+    const originalText = btn.textContent;
+
+    btn.disabled = true;
+    btn.textContent = '检测中...';
+    document.getElementById('loadingIndicator').style.display = 'block';
+    document.getElementById('resultSection').style.display = 'none';
+
+    const targets = {
+        target1: document.getElementById('target1').value.trim(),
+        target2: document.getElementById('target2').value.trim(),
+        target3: document.getElementById('target3').value.trim(),
+        target4: document.getElementById('target4').value.trim()
+    };
+
+    try {
+        const res = await fetch('/targets/check/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: new URLSearchParams(targets)
         });
 
-        // 监听输入框变化，保存到localStorage
-        document.getElementById('target1').addEventListener('input', function() {
-            localStorage.setItem('target1', this.value);
-        });
+        const data = await res.json();
 
-        document.getElementById('target2').addEventListener('input', function() {
-            localStorage.setItem('target2', this.value);
-        });
-
-        document.getElementById('target3').addEventListener('input', function() {
-            localStorage.setItem('target3', this.value);
-        });
-
-        document.getElementById('target4').addEventListener('input', function() {
-            localStorage.setItem('target4', this.value);
-        });
-
-        // 开始检测按钮事件
-        document.getElementById('startBtn').addEventListener('click', function() {
-            const btn = this;
-            btn.disabled = true;
-            btn.textContent = '检测中...';
-
-            document.getElementById('loadingIndicator').style.display = 'block';
-            document.getElementById('resultSection').style.display = 'none';
-
-            // 获取当前输入的目标
-            const targets = {
-                target1: document.getElementById('target1').value,
-                target2: document.getElementById('target2').value,
-                target3: document.getElementById('target3').value,
-                target4: document.getElementById('target4').value
-            };
-
-            // 发送请求到后端进行检测
-            fetch('/targets/check/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: new URLSearchParams(targets)
-            })
-            .then(response => response.json())
-            .then(data => {
-                displayResults(data.results);
-                document.getElementById('loadingIndicator').style.display = 'none';
-                document.getElementById('resultSection').style.display = 'block';
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('检测失败，请检查网络连接和目标地址');
-                document.getElementById('loadingIndicator').style.display = 'none';
-            })
-            .finally(() => {
-                btn.disabled = false;
-                btn.textContent = '开始检测';
-            });
-        });
-
-        // 显示检测结果
-        function displayResults(results) {
-            const container = document.getElementById('targetResults');
-            container.innerHTML = '';
-
-            results.forEach(result => {
-                const card = document.createElement('div');
-                card.className = 'target-card';
-
-                const targetIndex = result.index + 1;
-                const targetInput = document.getElementById(`target${targetIndex}`);
-                const targetValue = targetInput.value;
-
-                card.innerHTML = `
-                    <div class="target-header">目标 ${targetIndex}: ${targetValue}</div>
-                    <div class="metrics-grid">
-                        <div class="metric-item">
-                            <div class="metric-name">延迟</div>
-                            <div class="metric-value">${result.latency}</div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-name">丢包率</div>
-                            <div class="metric-value">${result.packet_loss}</div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-name">HTTP响应时间</div>
-                            <div class="metric-value">${result.http_time}</div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-name">网络抖动</div>
-                            <div class="metric-value">${result.jitter}</div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-name">DNS解析时间</div>
-                            <div class="metric-value">${result.dns_time}</div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-name">TCP重传率</div>
-                            <div class="metric-value">${result.tcp_retransmit}</div>
-                        </div>
-                    </div>
-                `;
-
-                container.appendChild(card);
-            });
+        if (data.results) {
+            displayResults(data.results);
+            document.getElementById('resultSection').style.display = 'block';
+        } else {
+            showMessage('检测返回数据异常', 'error');
         }
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('检测失败，请检查网络或目标地址', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+        document.getElementById('loadingIndicator').style.display = 'none';
+    }
+});
 
-        // 获取CSRF token
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
+function displayResults(results) {
+    const container = document.getElementById('targetResults');
+    container.innerHTML = '';
+
+    results.forEach((result, index) => {
+        const targetInput = document.getElementById(`target${index + 1}`);
+        const targetName = targetInput ? targetInput.value : `目标 ${index + 1}`;
+
+        const card = document.createElement('div');
+        card.className = 'neon-card target-card';
+        card.innerHTML = `
+            <div class="target-header">目标 ${index + 1}: ${targetName}</div>
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <div class="metric-name">延迟</div>
+                    <div class="metric-value">${result.latency || '—'}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-name">丢包率</div>
+                    <div class="metric-value">${result.packet_loss || '—'}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-name">HTTP响应时间</div>
+                    <div class="metric-value">${result.http_time || '—'}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-name">网络抖动</div>
+                    <div class="metric-value">${result.jitter || '—'}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-name">DNS解析时间</div>
+                    <div class="metric-value">${result.dns_time || '—'}</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-name">TCP重传率</div>
+                    <div class="metric-value">${result.tcp_retransmit || '—'}</div>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function showMessage(msg, type = 'error') {
+    const el = document.createElement('div');
+    el.className = `status ${type}`;
+    el.textContent = msg;
+    document.querySelector('.result-section').appendChild(el);
+
+    setTimeout(() => el.remove(), 5000);
+}
+
+// 获取 CSRF Token（Django 需要）
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
             }
-            return cookieValue;
         }
-    </script>
-</body>
-</html>
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

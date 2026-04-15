@@ -1,880 +1,317 @@
-<!-- templates/targets/dashboard.html -->
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多目标监控仪表盘 - 网络性能监控系统</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-    <style>
-        :root {
-            --primary-color: #0ea5e9;
-            --secondary-color: #0284c7;
-            --dark-bg: #0f172a;
-            --card-bg: #1e293b;
-            --text-color: #e2e8f0;
-            --border-color: #334155;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-        }
+{% extends "base.html" %}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% block title %}多目标监控仪表盘 - NEON MONITOR{% endblock %}
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--dark-bg), #1e3a8a);
-            color: var(--text-color);
-            min-height: 100vh;
-            padding: 20px;
-        }
+{% block extra_style %}
+<style>
+    .neon-card {
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(0, 245, 212, 0.4);
+        box-shadow: 0 0 25px rgba(0, 245, 212, 0.3);
+        transition: all 0.4s ease;
+    }
+    .neon-card:hover {
+        box-shadow: 0 0 40px rgba(0, 245, 212, 0.45);
+        transform: translateY(-6px);
+    }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+    .targets-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        margin-bottom: 60px;
+    }
 
-        /* 头部导航 */
-        .header {
-            background: rgba(30, 41, 59, 0.8);
-            backdrop-filter: blur(10px);
-            padding: 15px 30px;
-            border-radius: 16px;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border-color);
-        }
+    .target-card {
+        padding: 24px;
+        border-radius: 20px;
+    }
 
-        .nav-menu {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
+    .target-name {
+        font-size: 1.35rem;
+        font-weight: 600;
+        color: #fff;
+    }
 
-        .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary-color);
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+    .target-address {
+        font-size: 0.95rem;
+        color: #88f0e0;
+        word-break: break-all;
+        margin-top: 4px;
+    }
 
-        .nav-links {
-            display: flex;
-            gap: 25px;
-            flex-wrap: wrap;
-        }
+    .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        box-shadow: 0 0 12px currentColor;
+    }
 
-        .nav-item {
-            text-decoration: none;
-            color: var(--text-color);
-            padding: 10px 20px;
-            border-radius: 50px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
+    .chart-container {
+        position: relative;
+        height: 420px;
+    }
 
-        .nav-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(14, 165, 233, 0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .nav-item:hover::before {
-            left: 100%;
-        }
-
-        .nav-item:hover {
-            background: rgba(14, 165, 233, 0.2);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(14, 165, 233, 0.3);
-        }
-
-        /* 主标题 */
-        .page-title {
-            text-align: center;
-            font-size: 2.5rem;
-            margin-bottom: 40px;
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 2px 10px rgba(14, 165, 233, 0.3);
-        }
-
-        /* 目标状态卡片 */
-        .targets-status {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .target-status-card {
-            background: linear-gradient(145deg, var(--card-bg), #2d3748);
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
-        }
-
-        .target-status-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 35px rgba(14, 165, 233, 0.3);
-        }
-
-        .target-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .target-name {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text-color);
-        }
-
-        .target-address {
-            font-size: 0.9rem;
-            color: #94a3b8;
-            word-break: break-all;
-        }
-
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--success-color);
-        }
-
-        .status-dot.warning {
-            background: var(--warning-color);
-        }
-
-        .status-dot.danger {
-            background: var(--danger-color);
-        }
-
-        .status-text {
-            font-size: 0.9rem;
-            color: var(--success-color);
-        }
-
-        .status-text.warning {
-            color: var(--warning-color);
-        }
-
-        .status-text.danger {
-            color: var(--danger-color);
-        }
-
-        /* 图表区域 */
-        .charts-section {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
-            gap: 25px;
-            margin-top: 30px;
-        }
-
-        .chart-card {
-            background: linear-gradient(145deg, var(--card-bg), #2d3748);
-            border-radius: 16px;
-            padding: 25px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
-        }
-
-        .chart-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 35px rgba(14, 165, 233, 0.3);
-        }
-
-        .chart-header {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .chart-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: var(--text-color);
-        }
-
+    @media (max-width: 640px) {
         .chart-container {
-            position: relative;
-            height: 400px;
+            height: 340px;
         }
+    }
 
-        .chart-controls {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
+    .gradient-text {
+        background: linear-gradient(90deg, #00f5d4, #a855f7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+</style>
+{% endblock %}
 
-        .btn-refresh {
-            padding: 8px 16px;
-            background: rgba(14, 165, 233, 0.2);
-            color: var(--primary-color);
-            border: 1px solid var(--primary-color);
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
-        .btn-refresh:hover {
-            background: rgba(14, 165, 233, 0.3);
-            transform: translateY(-1px);
-        }
-
-        /* 响应式设计 */
-        @media (max-width: 1200px) {
-            .charts-section {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .nav-menu {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .nav-links {
-                justify-content: center;
-            }
-
-            .page-title {
-                font-size: 2rem;
-            }
-
-            .targets-status {
-                grid-template-columns: 1fr;
-            }
-
-            .chart-container {
-                height: 350px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            body {
-                padding: 10px;
-            }
-
-            .header {
-                padding: 10px 15px;
-            }
-
-            .nav-item {
-                padding: 8px 15px;
-                font-size: 0.9rem;
-            }
-
-            .chart-card {
-                padding: 20px;
-            }
-
-            .chart-container {
-                height: 300px;
-            }
-        }
-
-        /* 加载动画 */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .target-status-card, .chart-card {
-            animation: fadeInUp 0.6s ease forwards;
-        }
-
-        .target-status-card:nth-child(2) { animation-delay: 0.1s; }
-        .target-status-card:nth-child(3) { animation-delay: 0.2s; }
-        .target-status-card:nth-child(4) { animation-delay: 0.3s; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- 头部导航 -->
-        <header class="header">
-            <nav class="nav-menu">
-                <div class="logo">网络监控系统</div>
-                <div class="nav-links">
-                    <a href="/monitor/latency" class="nav-item">延迟测试</a>
-                    <a href="/monitor/ping" class="nav-item">丢包率测试</a>
-                    <a href="/monitor/http" class="nav-item">HTTP响应时间</a>
-                    <a href="/monitor/jitter" class="nav-item">网络抖动</a>
-                    <a href="/monitor/dns" class="nav-item">DNS解析时间</a>
-                    <a href="/monitor/tcp" class="nav-item">TCP重传率</a>
-                    <a href="/targets/config" class="nav-item">多目标监控配置</a>
-                </div>
-            </nav>
-        </header>
-
-        <!-- 主标题 -->
-        <h1 class="page-title">多目标监控仪表盘</h1>
-
-        <!-- 目标状态 -->
-        <div class="targets-status">
-            <div class="target-status-card">
-                <div class="target-info">
-                    <div>
-                        <div class="target-name">目标 1</div>
-                        <div class="target-address" id="address1">未配置</div>
-                    </div>
-                    <div class="status-indicator">
-                        <div class="status-dot" id="dot1"></div>
-                        <span class="status-text" id="status1">未配置</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="target-status-card">
-                <div class="target-info">
-                    <div>
-                        <div class="target-name">目标 2</div>
-                        <div class="target-address" id="address2">未配置</div>
-                    </div>
-                    <div class="status-indicator">
-                        <div class="status-dot" id="dot2"></div>
-                        <span class="status-text" id="status2">未配置</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="target-status-card">
-                <div class="target-info">
-                    <div>
-                        <div class="target-name">目标 3</div>
-                        <div class="target-address" id="address3">未配置</div>
-                    </div>
-                    <div class="status-indicator">
-                        <div class="status-dot" id="dot3"></div>
-                        <span class="status-text" id="status3">未配置</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="target-status-card">
-                <div class="target-info">
-                    <div>
-                        <div class="target-name">目标 4</div>
-                        <div class="target-address" id="address4">未配置</div>
-                    </div>
-                    <div class="status-indicator">
-                        <div class="status-dot" id="dot4"></div>
-                        <span class="status-text" id="status4">未配置</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 图表区域 -->
-        <div class="charts-section">
-            <!-- 延迟/丢包率/HTTP响应时间 - 柱状图 -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3 class="chart-title">延迟/丢包率/HTTP响应时间对比</h3>
-                    <div class="chart-controls">
-                        <button class="btn-refresh" onclick="refreshBarChart()">刷新数据</button>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="barChart"></canvas>
-                </div>
-            </div>
-
-            <!-- 网络抖动/TCP重传率 - 折线图 -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3 class="chart-title">网络抖动/TCP重传率趋势</h3>
-                    <div class="chart-controls">
-                        <button class="btn-refresh" onclick="refreshLineChart()">刷新数据</button>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="lineChart"></canvas>
-                </div>
-            </div>
-
-            <!-- DNS解析时间 - 热力图 -->
-            <div class="chart-card" style="grid-column: 1 / -1;">
-                <div class="chart-header">
-                    <h3 class="chart-title">DNS解析时间分布热力图</h3>
-                    <div class="chart-controls">
-                        <button class="btn-refresh" onclick="refreshHeatmap()">刷新数据</button>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="heatmap"></canvas>
-                </div>
-            </div>
-        </div>
+    <!-- 页面标题 -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl sm:text-5xl font-bold tracking-tighter gradient-text">
+            多目标监控仪表盘
+        </h1>
+        <p class="text-cyan-300 mt-4 text-lg">实时查看所有配置目标的监控状态</p>
     </div>
 
-    <script>
-        // 全局变量
-        let barChart, lineChart, heatmap;
-        let targets = [];
+    <!-- 目标状态卡片 -->
+    <div class="targets-grid" id="targets-grid">
+        <!-- JavaScript 动态生成 4 个目标卡片 -->
+    </div>
 
-        // 页面加载完成后初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            loadTargetsFromStorage();
-            initCharts();
-            startAutoRefresh();
-        });
+    <!-- 图表区域 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        // 从localStorage加载目标配置
-        function loadTargetsFromStorage() {
-            targets = [];
-            for (let i = 1; i <= 4; i++) {
-                const target = localStorage.getItem(`monitor_target_${i}`);
-                if (target) {
-                    targets.push({
-                        id: i,
-                        address: target,
-                        configured: true,
-                        status: 'online'
-                    });
-                    // 更新UI
-                    document.getElementById(`address${i}`).textContent = target;
-                    document.getElementById(`dot${i}`).className = 'status-dot';
-                    document.getElementById(`status${i}`).textContent = '在线';
-                    document.getElementById(`status${i}`).className = 'status-text';
-                } else {
-                    targets.push({
-                        id: i,
-                        address: '未配置',
-                        configured: false,
-                        status: 'offline'
-                    });
-                    // 更新UI
-                    document.getElementById(`address${i}`).textContent = '未配置';
-                    document.getElementById(`dot${i}`).className = 'status-dot warning';
-                    document.getElementById(`status${i}`).textContent = '未配置';
-                    document.getElementById(`status${i}`).className = 'status-text warning';
-                }
-            }
-        }
+        <!-- 延迟/丢包率/HTTP 对比柱状图 -->
+        <div class="neon-card rounded-3xl p-8">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-2xl font-semibold text-cyan-400 flex items-center gap-3">
+                    📊 延迟 / 丢包率 / HTTP 响应时间对比
+                </h3>
+                <button onclick="refreshBarChart()" 
+                        class="px-6 py-3 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-400 text-cyan-400 rounded-2xl text-sm font-medium transition-all">
+                    🔄 刷新
+                </button>
+            </div>
+            <div class="chart-container">
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
 
-        // 初始化图表
-        function initCharts() {
-            // 柱状图 - 延迟/丢包率/HTTP响应时间
-            const barCtx = document.getElementById('barChart').getContext('2d');
-            barChart = new Chart(barCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['目标1', '目标2', '目标3', '目标4'],
-                    datasets: [
-                        {
-                            label: '延迟 (ms)',
-                            data: [0, 0, 0, 0],
-                            backgroundColor: 'rgba(14, 165, 233, 0.7)',
-                            borderColor: 'rgba(14, 165, 233, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: '丢包率 (%)',
-                            data: [0, 0, 0, 0],
-                            backgroundColor: 'rgba(245, 158, 11, 0.7)',
-                            borderColor: 'rgba(245, 158, 11, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'HTTP响应时间 (ms)',
-                            data: [0, 0, 0, 0],
-                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
-                            borderColor: 'rgba(16, 185, 129, 1)',
-                            borderWidth: 1
-                        }
-                    ]
+        <!-- 抖动 / TCP 重传率趋势 -->
+        <div class="neon-card rounded-3xl p-8">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-2xl font-semibold text-cyan-400 flex items-center gap-3">
+                    📈 网络抖动 / TCP 重传率趋势
+                </h3>
+                <button onclick="refreshLineChart()" 
+                        class="px-6 py-3 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-400 text-cyan-400 rounded-2xl text-sm font-medium transition-all">
+                    🔄 刷新
+                </button>
+            </div>
+            <div class="chart-container">
+                <canvas id="lineChart"></canvas>
+            </div>
+        </div>
+
+        <!-- DNS 解析时间热力图（跨列） -->
+        <div class="neon-card rounded-3xl p-8 lg:col-span-2">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-2xl font-semibold text-cyan-400 flex items-center gap-3">
+                    🔍 DNS 解析时间分布热力图
+                </h3>
+                <button onclick="refreshHeatmap()" 
+                        class="px-6 py-3 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-400 text-cyan-400 rounded-2xl text-sm font-medium transition-all">
+                    🔄 刷新
+                </button>
+            </div>
+            <div class="chart-container">
+                <canvas id="heatmapChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+let barChart, lineChart, heatmapChart;
+
+// 初始化所有图表
+function initCharts() {
+    // 1. 柱状图 - 延迟/丢包率/HTTP
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    barChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: ['目标 1', '目标 2', '目标 3', '目标 4'],
+            datasets: [
+                {
+                    label: '延迟 (ms)',
+                    data: [42, 68, 35, 91],
+                    backgroundColor: '#22d3ee'
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#e2e8f0'
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#94a3b8'
-                            }
-                        },
-                        y: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#94a3b8'
-                            }
-                        }
-                    }
-                }
-            });
-
-            // 折线图 - 网络抖动/TCP重传率
-            const lineCtx = document.getElementById('lineChart').getContext('2d');
-            lineChart = new Chart(lineCtx, {
-                type: 'line',
-                data: {
-                    labels: generateTimeLabels(),
-                    datasets: [
-                        {
-                            label: '目标1 - 网络抖动',
-                            data: generateRandomData(10),
-                            borderColor: '#0ea5e9',
-                            backgroundColor: 'rgba(14, 165, 233, 0.1)',
-                            tension: 0.4,
-                            fill: false
-                        },
-                        {
-                            label: '目标1 - TCP重传率',
-                            data: generateRandomData(10),
-                            borderColor: '#0ea5e9',
-                            backgroundColor: 'rgba(14, 165, 233, 0.1)',
-                            tension: 0.4,
-                            fill: false,
-                            borderDash: [5, 5]
-                        },
-                        {
-                            label: '目标2 - 网络抖动',
-                            data: generateRandomData(10),
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            tension: 0.4,
-                            fill: false
-                        },
-                        {
-                            label: '目标2 - TCP重传率',
-                            data: generateRandomData(10),
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            tension: 0.4,
-                            fill: false,
-                            borderDash: [5, 5]
-                        },
-                        {
-                            label: '目标3 - 网络抖动',
-                            data: generateRandomData(10),
-                            borderColor: '#f59e0b',
-                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                            tension: 0.4,
-                            fill: false
-                        },
-                        {
-                            label: '目标3 - TCP重传率',
-                            data: generateRandomData(10),
-                            borderColor: '#f59e0b',
-                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                            tension: 0.4,
-                            fill: false,
-                            borderDash: [5, 5]
-                        },
-                        {
-                            label: '目标4 - 网络抖动',
-                            data: generateRandomData(10),
-                            borderColor: '#ef4444',
-                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                            tension: 0.4,
-                            fill: false
-                        },
-                        {
-                            label: '目标4 - TCP重传率',
-                            data: generateRandomData(10),
-                            borderColor: '#ef4444',
-                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                            tension: 0.4,
-                            fill: false,
-                            borderDash: [5, 5]
-                        }
-                    ]
+                {
+                    label: '丢包率 (%)',
+                    data: [0.8, 2.3, 0.4, 5.1],
+                    backgroundColor: '#f97316'
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#e2e8f0'
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#94a3b8'
-                            }
-                        },
-                        y: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#94a3b8'
-                            }
-                        }
-                    }
+                {
+                    label: 'HTTP响应 (ms)',
+                    data: [124, 289, 87, 456],
+                    backgroundColor: '#a855f7'
                 }
-            });
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: '#a0f0e8', padding: 20 } }
+            },
+            scales: {
+                x: { grid: { color: 'rgba(0,245,212,0.08)' }, ticks: { color: '#94a3b8' } },
+                y: { grid: { color: 'rgba(0,245,212,0.08)' }, ticks: { color: '#94a3b8' } }
+            }
+        }
+    });
 
-            // 热力图 - DNS解析时间（使用柱状图模拟）
-            const heatCtx = document.getElementById('heatmap').getContext('2d');
-            heatChart = new Chart(heatCtx, {
-                type: 'bar',
-                data: {
-                    labels: generateHourLabels(),
-                    datasets: [
-                        {
-                            label: '目标1 - DNS解析时间',
-                            data: generateRandomData(24),
-                            backgroundColor: generateHeatmapColors(24),
-                            borderColor: 'rgba(255, 255, 255, 0.2)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: '目标2 - DNS解析时间',
-                            data: generateRandomData(24),
-                            backgroundColor: generateHeatmapColors(24),
-                            borderColor: 'rgba(255, 255, 255, 0.2)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: '目标3 - DNS解析时间',
-                            data: generateRandomData(24),
-                            backgroundColor: generateHeatmapColors(24),
-                            borderColor: 'rgba(255, 255, 255, 0.2)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: '目标4 - DNS解析时间',
-                            data: generateRandomData(24),
-                            backgroundColor: generateHeatmapColors(24),
-                            borderColor: 'rgba(255, 255, 255, 0.2)',
-                            borderWidth: 1
-                        }
-                    ]
+    // 2. 折线图 - 抖动 / TCP 重传率
+    const lineCtx = document.getElementById('lineChart').getContext('2d');
+    lineChart = new Chart(lineCtx, {
+        type: 'line',
+        data: {
+            labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+            datasets: [
+                {
+                    label: '网络抖动 (ms)',
+                    data: [4.2, 6.8, 3.1, 12.5, 5.4, 8.9],
+                    borderColor: '#22d3ee',
+                    backgroundColor: 'rgba(34, 211, 238, 0.15)',
+                    tension: 0.4,
+                    borderWidth: 3,
+                    fill: true
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#e2e8f0'
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#94a3b8',
-                                maxRotation: 45,
-                                minRotation: 45
-                            }
-                        },
-                        y: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#94a3b8'
-                            }
-                        }
-                    }
+                {
+                    label: 'TCP 重传率 (%)',
+                    data: [0.12, 0.45, 0.08, 1.23, 0.67, 0.34],
+                    borderColor: '#f87171',
+                    backgroundColor: 'rgba(248, 113, 113, 0.15)',
+                    tension: 0.4,
+                    borderWidth: 3,
+                    borderDash: [4, 2],
+                    fill: true
                 }
-            });
-        }
-
-        // 生成时间标签（最近10个时间点）
-        function generateTimeLabels() {
-            const labels = [];
-            const now = new Date();
-            for (let i = 9; i >= 0; i--) {
-                const time = new Date(now.getTime() - i * 5 * 60000); // 5分钟间隔
-                labels.push(time.toLocaleTimeString());
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: '#a0f0e8' } }
+            },
+            scales: {
+                x: { grid: { color: 'rgba(0,245,212,0.08)' }, ticks: { color: '#94a3b8' } },
+                y: { grid: { color: 'rgba(0,245,212,0.08)' }, ticks: { color: '#94a3b8' } }
             }
-            return labels;
         }
+    });
 
-        // 生成小时标签（24小时）
-        function generateHourLabels() {
-            const labels = [];
-            for (let i = 0; i < 24; i++) {
-                labels.push(`${i.toString().padStart(2, '0')}:00`);
+    // 3. 热力图（用柱状图模拟）
+    const heatCtx = document.getElementById('heatmapChart').getContext('2d');
+    heatmapChart = new Chart(heatCtx, {
+        type: 'bar',
+        data: {
+            labels: ['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00'],
+            datasets: [
+                { label: '目标1 DNS', data: [12,18,9,25,14,31,11,17], backgroundColor: '#22d3ee88' },
+                { label: '目标2 DNS', data: [28,15,22,19,35,8,24,16], backgroundColor: '#a855f788' },
+                { label: '目标3 DNS', data: [9,14,27,11,18,29,13,21], backgroundColor: '#f472b688' }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: '#a0f0e8' } }
+            },
+            scales: {
+                x: { grid: { color: 'rgba(0,245,212,0.08)' }, ticks: { color: '#94a3b8' } },
+                y: { grid: { color: 'rgba(0,245,212,0.08)' }, ticks: { color: '#94a3b8' } }
             }
-            return labels;
         }
+    });
+}
 
-        // 生成随机数据
-        function generateRandomData(count) {
-            const data = [];
-            for (let i = 0; i < count; i++) {
-                data.push(Math.floor(Math.random() * 100));
-            }
-            return data;
-        }
+// 渲染目标状态卡片
+function renderTargetCards() {
+    const container = document.getElementById('targets-grid');
+    container.innerHTML = '';
 
-        // 生成热力图颜色
-        function generateHeatmapColors(count) {
-            const colors = [];
-            for (let i = 0; i < count; i++) {
-                const intensity = Math.floor(Math.random() * 100);
-                const r = Math.floor(50 + intensity * 1.5);
-                const g = Math.floor(100 + intensity * 0.5);
-                const b = Math.floor(200 - intensity * 0.5);
-                colors.push(`rgba(${r}, ${g}, ${b}, 0.7)`);
-            }
-            return colors;
-        }
+    for (let i = 1; i <= 4; i++) {
+        const cardHTML = `
+            <div class="neon-card target-card p-7">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-cyan-300 text-xs tracking-widest">目标 ${i}</div>
+                        <div class="target-name mt-2" id="name-${i}">目标 ${i}</div>
+                        <div class="target-address text-sm mt-1" id="addr-${i}">未配置</div>
+                    </div>
+                    <div class="status-dot bg-emerald-400" id="dot-${i}"></div>
+                </div>
+                <div class="mt-8 text-xs text-cyan-300">状态</div>
+                <div class="text-emerald-400 font-medium text-lg mt-1" id="status-${i}">在线</div>
+            </div>
+        `;
+        container.innerHTML += cardHTML;
+    }
+}
 
-        // 刷新柱状图数据
-        function refreshBarChart() {
-            const pingData = generateRandomData(4);
-            const lossData = generateRandomData(4).map(val => val / 10); // 丢包率通常较小
-            const httpData = generateRandomData(4).map(val => val * 2); // HTTP响应时间通常较大
+// 刷新柱状图（示例数据）
+function refreshBarChart() {
+    if (!barChart) return;
+    barChart.data.datasets[0].data = [38, 72, 29, 105];
+    barChart.data.datasets[1].data = [0.4, 3.2, 0.8, 6.5];
+    barChart.data.datasets[2].data = [89, 245, 67, 412];
+    barChart.update();
+}
 
-            barChart.data.datasets[0].data = pingData;
-            barChart.data.datasets[1].data = lossData;
-            barChart.data.datasets[2].data = httpData;
-            barChart.update();
-        }
+// 刷新折线图
+function refreshLineChart() {
+    if (!lineChart) return;
+    lineChart.data.labels = ['00:00','04:00','08:00','12:00','16:00','20:00'];
+    lineChart.data.datasets.forEach(ds => {
+        ds.data = Array(6).fill(0).map(() => Math.random() * 15);
+    });
+    lineChart.update();
+}
 
-        // 刷新折线图数据
-        function refreshLineChart() {
-            lineChart.data.labels = generateTimeLabels();
-            lineChart.data.datasets.forEach(dataset => {
-                dataset.data = generateRandomData(10);
-            });
-            lineChart.update();
-        }
+// 刷新热力图
+function refreshHeatmap() {
+    if (!heatmapChart) return;
+    heatmapChart.data.datasets.forEach(ds => {
+        ds.data = Array(8).fill(0).map(() => Math.floor(Math.random() * 40));
+    });
+    heatmapChart.update();
+}
 
-        // 刷新热力图数据
-        function refreshHeatmap() {
-            heatChart.data.datasets.forEach(dataset => {
-                dataset.data = generateRandomData(24);
-                dataset.backgroundColor = generateHeatmapColors(24);
-            });
-            heatChart.update();
-        }
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+    renderTargetCards();
+    initCharts();
 
-        // 自动刷新数据
-        function startAutoRefresh() {
-            // 每30秒自动刷新一次
-            setInterval(() => {
-                refreshBarChart();
-                refreshLineChart();
-                refreshHeatmap();
-            }, 30000);
-        }
-
-        // 窗口大小改变时重新调整图表
-        window.addEventListener('resize', function() {
-            if (barChart) barChart.resize();
-            if (lineChart) lineChart.resize();
-            if (heatChart) heatChart.resize();
-        });
-
-        // 预留API接口调用
-        function fetchDataFromBackend() {
-            // 预留后端API调用
-            fetch('/api/multi-target-monitoring/')
-                .then(response => response.json())
-                .then(data => {
-                    // 更新图表数据
-                    console.log('从后端获取的数据:', data);
-                    updateChartsWithData(data);
-                })
-                .catch(error => {
-                    console.error('获取数据失败:', error);
-                });
-        }
-
-        // 使用后端数据更新图表
-        function updateChartsWithData(data) {
-            // 更新柱状图
-            if (data.ping_data) {
-                barChart.data.datasets[0].data = data.ping_data;
-            }
-            if (data.loss_data) {
-                barChart.data.datasets[1].data = data.loss_data;
-            }
-            if (data.http_data) {
-                barChart.data.datasets[2].data = data.http_data;
-            }
-            barChart.update();
-
-            // 更新折线图
-            if (data.jitter_data) {
-                lineChart.data.datasets[0].data = data.jitter_data;
-            }
-            if (data.tcp_retransmit_data) {
-                lineChart.data.datasets[1].data = data.tcp_retransmit_data;
-            }
-            lineChart.update();
-
-            // 更新热力图
-            if (data.dns_data) {
-                heatChart.data.datasets[0].data = data.dns_data;
-            }
-            heatChart.update();
-        }
-
-        // 页面可见性改变时处理
-        document.addEventListener('visibilitychange', function() {
-            if (document.hidden) {
-                // 页面隐藏时停止某些操作
-            } else {
-                // 页面显示时恢复操作
-                // 重新加载目标状态
-                loadTargetsFromStorage();
-            }
-        });
-    </script>
-</body>
-</html>
+    // 每45秒自动刷新一次演示数据
+    setInterval(() => {
+        refreshBarChart();
+        refreshLineChart();
+        refreshHeatmap();
+    }, 45000);
+});
+</script>
+{% endblock %}

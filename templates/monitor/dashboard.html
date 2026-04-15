@@ -7,132 +7,163 @@
     .neon-card {
         background: rgba(15, 23, 42, 0.85);
         border: 1px solid rgba(0, 245, 212, 0.35);
-        box-shadow: 0 0 15px rgba(0, 245, 212, 0.2);
+        box-shadow: 0 0 20px rgba(0, 245, 212, 0.25);
+        transition: all 0.3s ease;
     }
-    .progress-bar {
-        transition: width 0.6s ease;
+    .neon-card:hover {
+        box-shadow: 0 0 30px rgba(0, 245, 212, 0.4);
+        border-color: rgba(0, 245, 212, 0.6);
     }
+
     .stat-value {
-        font-size: 3.2rem;
+        font-size: clamp(2.5rem, 8vw, 4.5rem);
         font-weight: 700;
+        line-height: 1;
     }
+
+    .progress-bar {
+        transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
     .health-score {
-        font-size: 1.5rem;
+        font-size: 1.35rem;
         font-weight: bold;
-        padding: 10px 20px;
-        border-radius: 12px;
+        padding: 10px 24px;
+        border-radius: 9999px;
         display: inline-block;
         margin-bottom: 16px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
     }
+
     .excellent { background: #22c55e; color: #000; }
     .good     { background: #eab308; color: #000; }
     .warning  { background: #f97316; color: #fff; }
     .critical { background: #ef4444; color: #fff; }
+
     .report-text {
-        line-height: 1.75;
+        line-height: 1.8;
         color: #e5e7eb;
         white-space: pre-wrap;
+        font-size: 15.5px;
     }
+
     .no-report {
         color: #9ca3af;
         font-style: italic;
+    }
+
+    /* 小屏优化 */
+    @media (max-width: 640px) {
+        .stat-value {
+            font-size: 3.2rem;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-[#0a0e17] text-[#00f5d4] p-8">
-    <div class="max-w-7xl mx-auto">
+<div class="min-h-screen bg-[#0a0e17] text-[#00f5d4]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
         <!-- 标题栏 -->
-        <div class="flex items-center justify-between mb-10">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-10">
             <div>
-                <h1 class="text-4xl font-bold tracking-tighter text-white flex items-center gap-4">
+                <h1 class="text-3xl sm:text-4xl font-bold tracking-tighter text-white flex items-center gap-3">
                     <span class="text-5xl">🖥️</span>
                     HOST RESOURCE MONITOR
                 </h1>
-                <p class="text-[#88f0e0] mt-2 text-lg">实时系统资源监控 • NEON MONITOR</p>
+                <p class="text-[#88f0e0] mt-2 text-base sm:text-lg">
+                    实时系统资源监控 • NEON MONITOR
+                </p>
             </div>
 
             <button onclick="refreshDashboard()"
-                    class="px-8 py-3 bg-[#00f5d4] hover:bg-[#00e6c8] text-black font-medium rounded-2xl flex items-center gap-2 transition-all active:scale-95">
+                    class="w-full sm:w-auto px-8 py-3.5 bg-[#00f5d4] hover:bg-[#00e6c8] text-black font-medium rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-cyan-500/30">
                 🔄 立即刷新
             </button>
         </div>
 
         <!-- 核心指标卡片 -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-12">
 
             <!-- 内存使用 -->
-            <div class="neon-card rounded-3xl p-8">
-                <div class="flex justify-between mb-8">
+            <div class="neon-card rounded-3xl p-6 sm:p-8">
+                <div class="flex justify-between items-start mb-8">
                     <div>
                         <div class="uppercase tracking-widest text-xs text-cyan-300">MEMORY USAGE</div>
-                        <div id="memory-value" class="stat-value text-7xl mt-3">0<span class="text-4xl">%</span></div>
+                        <div id="memory-value" class="stat-value text-white mt-3">0<span class="text-3xl align-super">%</span></div>
                     </div>
-                    <div class="text-6xl opacity-80">💾</div>
+                    <div class="text-6xl opacity-75">💾</div>
                 </div>
-                <div class="h-4 bg-zinc-900 rounded-2xl overflow-hidden">
-                    <div id="memory-bar" class="progress-bar h-full bg-gradient-to-r from-cyan-400 to-emerald-400 rounded-2xl" style="width: 0%"></div>
+                <div class="h-3 bg-zinc-900 rounded-full overflow-hidden mb-4">
+                    <div id="memory-bar"
+                         class="progress-bar h-full bg-gradient-to-r from-cyan-400 to-emerald-400 rounded-full"
+                         style="width: 0%"></div>
                 </div>
-                <div class="mt-4 flex justify-between text-sm">
+                <div class="flex justify-between text-sm">
                     <span class="text-[#88f0e0]">已使用</span>
                     <span id="memory-status" class="font-medium text-emerald-400">NOMINAL</span>
                 </div>
             </div>
 
             <!-- 磁盘使用 -->
-            <div class="neon-card rounded-3xl p-8">
-                <div class="flex justify-between mb-8">
+            <div class="neon-card rounded-3xl p-6 sm:p-8">
+                <div class="flex justify-between items-start mb-8">
                     <div>
                         <div class="uppercase tracking-widest text-xs text-purple-300">STORAGE USAGE</div>
-                        <div id="disk-value" class="stat-value text-7xl mt-3">0<span class="text-4xl">%</span></div>
+                        <div id="disk-value" class="stat-value text-white mt-3">0<span class="text-3xl align-super">%</span></div>
                     </div>
-                    <div class="text-6xl opacity-80">💿</div>
+                    <div class="text-6xl opacity-75">💿</div>
                 </div>
-                <div class="h-4 bg-zinc-900 rounded-2xl overflow-hidden">
-                    <div id="disk-bar" class="progress-bar h-full bg-gradient-to-r from-purple-400 to-pink-400 rounded-2xl" style="width: 0%"></div>
+                <div class="h-3 bg-zinc-900 rounded-full overflow-hidden mb-4">
+                    <div id="disk-bar"
+                         class="progress-bar h-full bg-gradient-to-r from-purple-400 to-pink-400 rounded-full"
+                         style="width: 0%"></div>
                 </div>
-                <div class="mt-4 flex justify-between text-sm">
+                <div class="flex justify-between text-sm">
                     <span class="text-[#88f0e0]">已使用</span>
                     <span id="disk-status" class="font-medium text-emerald-400">NOMINAL</span>
                 </div>
             </div>
 
             <!-- 网络吞吐 -->
-            <div class="neon-card rounded-3xl p-8">
-                <div class="flex justify-between mb-8">
+            <div class="neon-card rounded-3xl p-6 sm:p-8">
+                <div class="flex justify-between items-start mb-8">
                     <div>
                         <div class="uppercase tracking-widest text-xs text-orange-300">NETWORK THROUGHPUT</div>
-                        <div id="network-value" class="stat-value text-7xl mt-3">0.00 <span class="text-3xl">KB/s</span></div>
+                        <div id="network-value" class="stat-value text-white mt-3">0.00 <span class="text-2xl">KB/s</span></div>
                     </div>
-                    <div class="text-6xl opacity-80">🌐</div>
+                    <div class="text-6xl opacity-75">🌐</div>
                 </div>
                 <div id="network-status"
-                     class="inline-flex items-center gap-2 px-6 py-2 bg-emerald-500/10 text-emerald-400 rounded-2xl text-sm font-medium">
+                     class="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-500/10 text-emerald-400 rounded-2xl text-sm font-medium">
                     <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
                     NETWORK STABLE
                 </div>
             </div>
         </div>
 
-        <!-- AI 智能分析报告（已支持持久化显示） -->
-        <div class="neon-card rounded-3xl p-8">
-            <div class="flex items-center justify-between mb-6">
+        <!-- AI 智能分析报告 -->
+        <div class="neon-card rounded-3xl p-6 sm:p-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <h3 class="text-2xl font-semibold tracking-wider text-white flex items-center gap-3">
                     🤖 AI 智能分析报告
                 </h3>
-                <span id="report-time" class="text-xs uppercase tracking-widest text-cyan-300">最近一次分析：——</span>
+                <span id="report-time" class="text-xs uppercase tracking-widest text-cyan-300 whitespace-nowrap">
+                    最近一次分析：——
+                </span>
             </div>
 
-            <div id="ai-report-content" class="min-h-[280px] bg-[#0f172a] rounded-2xl p-8 border border-cyan-500/20">
-                <!-- 动态加载内容 -->
-                <div id="ai-report-placeholder" class="flex items-center justify-center h-full">
-                    <div class="text-center">
-                        <div class="text-5xl mb-4 opacity-40">🧠</div>
-                        <p class="text-[#88f0e0] text-lg">暂无分析报告</p>
-                        <p class="text-xs text-cyan-400/70 mt-2">请前往「AI智能分析」页面生成一份诊断报告</p>
-                    </div>
+            <div id="ai-report-content"
+                 class="min-h-[260px] sm:min-h-[300px] bg-[#0f172a] rounded-2xl p-6 sm:p-8 border border-cyan-500/20 text-sm leading-relaxed">
+
+                <!-- 占位内容 -->
+                <div id="ai-report-placeholder" class="flex flex-col items-center justify-center h-full py-12 text-center">
+                    <div class="text-6xl mb-6 opacity-40">🧠</div>
+                    <p class="text-[#88f0e0] text-lg">暂无分析报告</p>
+                    <p class="text-xs text-cyan-400/70 mt-3 max-w-xs">
+                        请前往「AI智能分析」页面生成一份专业诊断报告
+                    </p>
                 </div>
             </div>
         </div>
@@ -146,44 +177,47 @@
     function updateDashboard(data) {
         // 内存
         const mem = Math.round(data.memory || 0);
-        document.getElementById('memory-value').innerHTML = `${mem}<span class="text-4xl">%</span>`;
+        document.getElementById('memory-value').innerHTML = `${mem}<span class="text-3xl align-super">%</span>`;
         document.getElementById('memory-bar').style.width = `${mem}%`;
 
         const memStatus = document.getElementById('memory-status');
-        memStatus.textContent = mem < 65 ? "NOMINAL" : mem < 85 ? "WARNING" : "CRITICAL";
-        memStatus.className = mem < 65 ? "font-medium text-emerald-400" :
-                              mem < 85 ? "font-medium text-amber-400" : "font-medium text-red-400";
+        if (mem < 65) {
+            memStatus.textContent = "NOMINAL";
+            memStatus.className = "font-medium text-emerald-400";
+        } else if (mem < 85) {
+            memStatus.textContent = "WARNING";
+            memStatus.className = "font-medium text-amber-400";
+        } else {
+            memStatus.textContent = "CRITICAL";
+            memStatus.className = "font-medium text-red-400";
+        }
 
         // 磁盘
         const disk = Math.round(data.disk || 0);
-        document.getElementById('disk-value').innerHTML = `${disk}<span class="text-4xl">%</span>`;
+        document.getElementById('disk-value').innerHTML = `${disk}<span class="text-3xl align-super">%</span>`;
         document.getElementById('disk-bar').style.width = `${disk}%`;
 
         const diskStatus = document.getElementById('disk-status');
-        diskStatus.textContent = disk < 70 ? "NOMINAL" : disk < 85 ? "WARNING" : "CRITICAL";
-        diskStatus.className = disk < 70 ? "font-medium text-emerald-400" :
-                               disk < 85 ? "font-medium text-amber-400" : "font-medium text-red-400";
+        if (disk < 70) {
+            diskStatus.textContent = "NOMINAL";
+            diskStatus.className = "font-medium text-emerald-400";
+        } else if (disk < 85) {
+            diskStatus.textContent = "WARNING";
+            diskStatus.className = "font-medium text-amber-400";
+        } else {
+            diskStatus.textContent = "CRITICAL";
+            diskStatus.className = "font-medium text-red-400";
+        }
 
         // 网络
+        const net = (data.network || 0).toFixed(2);
         document.getElementById('network-value').innerHTML =
-            `${(data.network || 0).toFixed(2)} <span class="text-3xl">KB/s</span>`;
+            `${net} <span class="text-2xl">KB/s</span>`;
     }
 
-    function refreshDashboard() {
-        fetch('/monitor/api/system/')
-            .then(response => response.json())
-            .then(result => {
-                if (result.code === 0 && result.data) {
-                    updateDashboard(result.data);
-                }
-            })
-            .catch(err => console.error("获取系统数据失败:", err));
-    }
-
-    // ==================== 新增：加载最新 AI 报告 ====================
     function loadLatestAIReport() {
         fetch('/logs/api/recent-ai-reports/')
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 const placeholder = document.getElementById('ai-report-placeholder');
                 const contentDiv = document.getElementById('ai-report-content');
@@ -193,7 +227,6 @@
                     let scoreClass = 'warning';
                     if (score === '优秀') scoreClass = 'excellent';
                     else if (score === '良好') scoreClass = 'good';
-                    else if (score === '需关注') scoreClass = 'warning';
                     else if (score === '严重') scoreClass = 'critical';
 
                     contentDiv.innerHTML = `
@@ -206,27 +239,17 @@
                     `;
                     document.getElementById('report-time').textContent =
                         `最近一次分析：${data.latest.created_at}`;
+
+                    placeholder.style.display = 'none';
                 } else {
-                    // 显示占位提示
                     placeholder.style.display = 'flex';
                 }
             })
-            .catch(err => {
-                console.error("加载AI报告失败:", err);
-            });
+            .catch(err => console.error("加载AI报告失败:", err));
     }
 
-    // 页面加载后自动执行
-    window.addEventListener('load', () => {
-        refreshDashboard();
-        loadLatestAIReport();           // 加载AI报告
-        setInterval(refreshDashboard, 15000);   // 系统资源每15秒刷新
-        // AI报告不需要频繁刷新，刷新页面或手动点击“立即刷新”按钮时会重新加载
-    });
-
-    // 点击“立即刷新”按钮时同时刷新AI报告
-    window.refreshDashboard = function() {
-        // 原有系统资源刷新
+    function refreshDashboard() {
+        // 刷新系统资源
         fetch('/monitor/api/system/')
             .then(response => response.json())
             .then(result => {
@@ -238,6 +261,19 @@
 
         // 同时刷新AI报告
         loadLatestAIReport();
-    };
+    }
+
+    // 页面初始化
+    window.addEventListener('load', () => {
+        refreshDashboard();
+        // 每15秒自动刷新系统资源
+        setInterval(() => {
+            fetch('/monitor/api/system/')
+                .then(r => r.json())
+                .then(result => {
+                    if (result.code === 0 && result.data) updateDashboard(result.data);
+                });
+        }, 15000);
+    });
 </script>
 {% endblock %}

@@ -5,16 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}NEON MONITOR{% endblock %}</title>
 
-    <!-- Tailwind CSS CDN（解决仪表盘样式问题） -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap');
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --neon-cyan: #00f5d4;
         }
 
         body {
@@ -22,34 +19,25 @@
             background: #0a0e17;
             color: #00f5d4;
             min-height: 100vh;
-            overflow-y: auto;
+            overflow-x: hidden;
         }
 
-        /* ====================== 顶部栏 ====================== */
+        .logo-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* 顶部栏 */
         .top-bar {
             background: rgba(15, 23, 42, 0.95);
-            border-bottom: 1px solid #00f5d4;
-            padding: 16px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            border-bottom: 1px solid var(--neon-cyan);
+            padding: 14px 20px;
             position: sticky;
             top: 0;
             z-index: 50;
-        }
-        .logo {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 26px;
-            font-weight: 600;
-            letter-spacing: 2px;
-            color: #00f5d4;
-        }
-        .time {
-            font-size: 15px;
-            color: #88f0e0;
+            backdrop-filter: blur(10px);
         }
 
-        /* ====================== 侧边栏 ====================== */
+        /* 侧边栏 - 默认收起 */
         .sidebar {
             position: fixed;
             left: 0;
@@ -57,13 +45,15 @@
             bottom: 0;
             width: 280px;
             background: rgba(15, 23, 42, 0.98);
-            border-right: 1px solid #00f5d4;
+            border-right: 1px solid var(--neon-cyan);
             transform: translateX(-100%);
-            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0.1, 1);
+            transition: transform 0.4s cubic-bezier(0.32, 0.72, 0.1, 1);
             z-index: 100;
-            padding-top: 80px;
-            box-shadow: 4px 0 20px rgba(0, 245, 212, 0.15);
+            padding-top: 70px;
+            box-shadow: 6px 0 25px rgba(0, 245, 212, 0.2);
+            overflow-y: auto;
         }
+
         .sidebar.show {
             transform: translateX(0);
         }
@@ -71,154 +61,127 @@
         .menu-item {
             display: flex;
             align-items: center;
-            padding: 16px 28px;
+            padding: 14px 24px;
             color: #a0f0e8;
             text-decoration: none;
-            font-size: 15.5px;
-            transition: background 0.2s ease;
-        }
-        .menu-item:hover {
-            background: rgba(0, 245, 212, 0.15);
-            color: #fff;
+            font-size: 15px;
+            transition: all 0.25s ease;
         }
 
-        /* ====================== 主内容 ====================== */
-        .main-content {
-            margin-left: 0;
-            padding: 32px 40px 40px;
-            transition: margin-left 0.35s cubic-bezier(0.32, 0.72, 0.1, 1);
-            min-height: calc(100vh - 65px);
-        }
-        .main-content.expanded {
-            margin-left: 280px;
-        }
-
-        .toggle-btn {
-            position: fixed;
-            left: 12px;
-            bottom: 40px;
-            width: 46px;
-            height: 46px;
-            background: rgba(0, 245, 212, 0.12);
-            border: 2px solid #00f5d4;
-            border-radius: 50%;
-            color: #00f5d4;
-            font-size: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 200;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
-        }
-        .toggle-btn:hover {
-            background: rgba(0, 245, 212, 0.25);
-            transform: scale(1.1);
-        }
-
-        /* 仪表盘专用的霓虹卡片样式（兼容 Tailwind） */
-        .neon-card {
-            background: rgba(15, 23, 42, 0.85);
-            border: 1px solid rgba(0, 245, 212, 0.4);
-            box-shadow: 0 0 20px rgba(0, 245, 212, 0.3);
-        }
-                /* 菜单项统一样式优化 */
-        .menu-item {
-            display: flex;
-            align-items: center;
-            padding: 16px 28px;
-            color: #a0f0e8;
-            text-decoration: none;
-            font-size: 15.5px;
-            transition: all 0.2s ease;
-        }
         .menu-item:hover {
             background: rgba(0, 245, 212, 0.15);
             color: #fff;
             padding-left: 32px;
         }
 
-        /* 分隔线样式 */
-        .menu-items .h-px {
-            opacity: 0.3;
+        /* 主内容区 */
+        .main-content {
+            margin-left: 0;
+            padding: 24px 20px;
+            transition: margin-left 0.4s ease;
+            min-height: calc(100vh - 60px);
         }
 
-        /* 当前激活菜单项（可选，后续可扩展） */
-        .menu-item.active {
-            background: rgba(0, 245, 212, 0.25);
-            color: #fff;
-            border-left: 4px solid #00f5d4;
+        /* Tailwind 配置 */
+        .tail-container {
+            max-width: 1280px;
+            margin: 0 auto;
         }
-
-
-
-
-        {% block extra_style %}{% endblock %}
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    {% block extra_style %}{% endblock %}
 </head>
 <body>
-    <!-- 贴边按钮 -->
-    <div class="toggle-btn" id="toggle-btn">☰</div>
 
-    <!-- 侧边栏 -->
+    <!-- 侧边栏（默认收起） -->
     <div class="sidebar" id="sidebar">
-        <div class="sidebar-header p-6 border-b border-cyan-500/30">
-            <div class="sidebar-logo text-2xl font-bold tracking-widest">NEON MONITOR</div>
+        <div class="p-6 border-b border-cyan-500/30">
+            <div class="logo-font text-3xl font-bold tracking-widest text-white">NEON</div>
+            <div class="text-xs tracking-[3px] text-cyan-400 mt-1">MONITOR</div>
         </div>
-        <div class="menu-items pt-4">
-            <a href="/" class="menu-item"><i class="mr-4">📊</i> 系统仪表盘</a>
-            <a href="/monitor/ping/" class="menu-item"><i class="mr-4">⚡</i> 延迟测试 (Ping)</a>
-            <a href="/monitor/loss/" class="menu-item"><i class="mr-4">📉</i> 丢包率测试</a>
-            <a href="/monitor/http-response/" class="menu-item"><i class="mr-4">🌐</i> HTTP 响应时间</a>
-            <a href="/monitor/jitter/" class="menu-item"><i class="mr-4">📈</i> 网络抖动</a>
-            <a href="/monitor/dns/" class="menu-item"><i class="mr-4">🔍</i> DNS 解析时间</a>
-            <a href="/monitor/tcp-retrans/" class="menu-item"><i class="mr-4">🔄</i> TCP 重传率</a>
 
-            <!-- 分隔线（视觉上更清晰） -->
-            <div class="h-px bg-cyan-500/20 my-4 mx-6"></div>
+        <div class="menu-items pt-6">
+            <a href="{% url 'home' %}" class="menu-item"><span class="mr-4 text-lg">📊</span> 系统仪表盘</a>
+            <a href="{% url 'monitor:ping' %}" class="menu-item"><span class="mr-4 text-lg">⚡</span> 延迟测试 (Ping)</a>
+            <a href="{% url 'monitor:loss' %}" class="menu-item"><span class="mr-4 text-lg">📉</span> 丢包率测试</a>
+            <a href="{% url 'monitor:http_response' %}" class="menu-item"><span class="mr-4 text-lg">🌐</span> HTTP 响应时间</a>
+            <a href="{% url 'monitor:jitter' %}" class="menu-item"><span class="mr-4 text-lg">📈</span> 网络抖动</a>
+            <a href="{% url 'monitor:dns' %}" class="menu-item"><span class="mr-4 text-lg">🔍</span> DNS 解析时间</a>
+            <a href="{% url 'monitor:tcp_retrans' %}" class="menu-item"><span class="mr-4 text-lg">🔄</span> TCP 重传率</a>
 
-            <a href="/targets/config/" class="menu-item"><i class="mr-4">⚙️</i> 多目标监控配置</a>
-            <a href="{% url 'ai_analysis' %}" class="menu-item"><i class="mr-4">🤖</i> AI 智能分析</a>
-            <a href="/logs/system-logs/" class="menu-item"><i class="mr-4">📋</i> 系统日志</a>
+            <div class="h-px bg-cyan-500/20 my-6 mx-6"></div>
+
+            <a href="{% url 'targets:config' %}" class="menu-item"><span class="mr-4 text-lg">⚙️</span> 多目标监控配置</a>
+            <a href="{% url 'ai_analysis' %}" class="menu-item"><span class="mr-4 text-lg">🤖</span> AI 智能分析</a>
+            <a href="{% url 'logs:system_logs' %}" class="menu-item"><span class="mr-4 text-lg">📋</span> 系统日志</a>
         </div>
     </div>
 
     <!-- 顶部栏 -->
-    <div class="top-bar">
-        <div class="logo">NEON MONITOR</div>
-        <div class="time" id="current-time"></div>
+    <div class="top-bar flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <!-- 通用切换按钮 -->
+            <button id="sidebar-toggle"
+                    class="w-11 h-11 flex items-center justify-center text-3xl text-cyan-400 hover:text-white transition-all">
+                ☰
+            </button>
+            <div class="logo-font text-2xl font-semibold tracking-wider hidden sm:block">NEON MONITOR</div>
+        </div>
+
+        <div class="time text-sm text-cyan-300 font-medium" id="current-time"></div>
     </div>
 
     <!-- 主内容 -->
     <div class="main-content" id="main-content">
-        {% block content %}{% endblock %}
+        <div class="tail-container">
+            {% block content %}{% endblock %}
+        </div>
     </div>
 
     <script>
-        // 侧边栏切换
         const sidebar = document.getElementById('sidebar');
-        const toggleBtn = document.getElementById('toggle-btn');
+        const toggleBtn = document.getElementById('sidebar-toggle');
         const mainContent = document.getElementById('main-content');
 
         function toggleSidebar() {
             sidebar.classList.toggle('show');
-            mainContent.classList.toggle('expanded');
-            toggleBtn.textContent = sidebar.classList.contains('show') ? '✕' : '☰';
+
+            // 可选：收起时让主内容靠左（视觉更干净）
+            if (sidebar.classList.contains('show')) {
+                mainContent.style.marginLeft = '280px';
+            } else {
+                mainContent.style.marginLeft = '0';
+            }
         }
+
         toggleBtn.addEventListener('click', toggleSidebar);
+
+        // 点击侧边栏以外区域关闭（移动端友好）
+        document.addEventListener('click', function(e) {
+            if (!sidebar.contains(e.target) && e.target !== toggleBtn) {
+                sidebar.classList.remove('show');
+                mainContent.style.marginLeft = '0';
+            }
+        });
 
         // 实时时间
         function updateTime() {
-            document.getElementById('current-time').textContent = new Date().toLocaleString('zh-CN');
+            const now = new Date();
+            document.getElementById('current-time').textContent =
+                now.toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         }
         setInterval(updateTime, 1000);
         updateTime();
 
-        // 移除 FOUC 隐藏逻辑（已不再需要）
-        // window.addEventListener('load', () => { ... });  这行可以删掉或保留
+        // ESC 键关闭菜单
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                sidebar.classList.remove('show');
+                mainContent.style.marginLeft = '0';
+            }
+        });
     </script>
 
     {% block extra_script %}{% endblock %}

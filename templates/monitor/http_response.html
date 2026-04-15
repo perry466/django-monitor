@@ -4,41 +4,41 @@
 
 {% block extra_style %}
 <style>
-    .http-container {
-        max-width: 100%;
-        padding: 0;
+    .neon-card {
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(0, 245, 212, 0.35);
+        box-shadow: 0 0 25px rgba(0, 245, 212, 0.25);
+        transition: all 0.3s ease;
+    }
+    .neon-card:hover {
+        box-shadow: 0 0 35px rgba(0, 245, 212, 0.45);
+        transform: translateY(-4px);
     }
 
     .http-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 22px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
         margin-bottom: 60px;
-    }
-
-    @media (max-width: 1400px) {
-        .http-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 900px) {
-        .http-grid { grid-template-columns: 1fr; }
     }
 
     .http-card {
         background: rgba(15, 23, 42, 0.92);
-        backdrop-filter: blur(16px);
         border: 1px solid rgba(0, 245, 212, 0.3);
-        border-radius: 18px;
+        border-radius: 20px;
         padding: 24px;
         position: relative;
         overflow: hidden;
-        transition: transform 0.25s ease;
         min-height: 260px;
+        transition: all 0.3s ease;
     }
 
     .http-card:hover {
-        transform: translateY(-6px);
+        transform: translateY(-8px);
+        box-shadow: 0 0 40px rgba(0, 245, 212, 0.4);
     }
 
+    /* 顶部流动霓虹线 */
     .http-card::before {
         content: '';
         position: absolute;
@@ -58,41 +58,56 @@
 
     .response-time {
         font-family: 'Orbitron', sans-serif;
-        font-size: 3.5rem;
+        font-size: clamp(2.8rem, 7vw, 4rem);
         font-weight: 700;
         line-height: 1;
-        letter-spacing: -3px;
-        margin: 16px 0 8px;
+        letter-spacing: -4px;
+        margin: 20px 0 10px;
     }
 
     .status-badge {
-        padding: 6px 14px;
+        padding: 6px 16px;
         border-radius: 9999px;
         font-size: 13px;
         font-weight: 500;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 420px;
+    }
+
+    @media (max-width: 640px) {
+        .chart-container {
+            height: 360px;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="http-container">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+
     <!-- 页面标题 -->
-    <div class="flex items-center justify-between mb-12">
-        <div class="flex items-center gap-5">
-            <div class="text-5xl">🌐</div>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-12">
+        <div class="flex items-center gap-4">
+            <div class="text-6xl">🌐</div>
             <div>
-                <h1 class="text-4xl font-bold tracking-tighter" style="font-family: 'Orbitron', sans-serif; color: #00f5d4;">
+                <h1 class="text-3xl sm:text-4xl font-bold tracking-tighter text-cyan-400"
+                    style="font-family: 'Orbitron', sans-serif;">
                     HTTP 响应时间监控
                 </h1>
-                <p class="text-lg text-cyan-300 mt-1">实时监测全球主流服务响应速度</p>
+                <p class="text-cyan-300 mt-2 text-base sm:text-lg">
+                    实时监测全球主流服务响应速度
+                </p>
             </div>
         </div>
 
-        <div class="flex items-center gap-6">
-            <button onclick="refreshData()" id="refresh-btn"
-                    class="flex items-center gap-3 px-8 py-4 bg-slate-900 hover:bg-slate-800 border border-[#00f5d4] hover:border-white rounded-2xl transition-all text-lg">
+        <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+            <button onclick="fetchData()" id="refresh-btn"
+                    class="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 hover:bg-slate-800 border border-cyan-400 hover:border-white rounded-2xl transition-all text-lg font-medium">
                 <span class="text-2xl">🔄</span>
-                <span class="font-medium">立即刷新</span>
+                <span>立即刷新</span>
             </button>
 
             <div class="text-right">
@@ -102,68 +117,74 @@
         </div>
     </div>
 
-    <!-- 4个卡片 -->
+    <!-- HTTP 服务卡片网格 -->
     <div id="http-cards" class="http-grid">
-        <!-- JS 动态生成 -->
+        <!-- JS 动态生成卡片 -->
     </div>
 
-    <!-- 趋势图 -->
-    <div class="bg-slate-900/80 backdrop-blur-xl border border-cyan-900/50 rounded-3xl p-10">
-        <div class="flex justify-between items-center mb-8">
-            <h2 class="text-3xl font-semibold flex items-center gap-4" style="color: #00f5d4;">
+    <!-- 响应时间趋势图 -->
+    <div class="neon-card rounded-3xl p-6 sm:p-10">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-cyan-400 flex items-center gap-3">
                 📈 响应时间趋势（最近 20 次采样）
             </h2>
-            <div id="chart-last-updated" class="font-mono text-cyan-300">—</div>
+            <div id="chart-last-updated" class="font-mono text-cyan-300 text-sm sm:text-base">
+                更新于 ——
+            </div>
         </div>
-        <div style="height: 400px;">
+
+        <div class="chart-container">
             <canvas id="responseTrendChart"></canvas>
         </div>
     </div>
+
 </div>
 {% endblock %}
 
 {% block extra_script %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
     let responseChart = null;
     const colors = ['#00f5d4', '#a855f7', '#ec4899', '#fb923c'];
 
     function getStatusStyle(ms) {
-        if (!ms) return { color: '#888888', text: 'N/A' };
+        if (!ms || isNaN(ms)) return { color: '#888888', text: 'N/A' };
         if (ms > 800) return { color: '#ff4d4d', text: '较差' };
         if (ms > 400) return { color: '#ffaa00', text: '需关注' };
         return { color: '#00f5d4', text: '优秀' };
     }
 
-    // 创建卡片（优化版：减少 innerHTML 拼接次数）
     function createCards(results) {
         const container = document.getElementById('http-cards');
         container.innerHTML = '';
 
         results.forEach((item) => {
-            const status = getStatusStyle(item.response_time);
+            const ms = parseFloat(item.response_time);
+            const status = getStatusStyle(ms);
 
             const cardHTML = `
                 <div class="http-card">
                     <div class="flex justify-between items-start">
-                        <div>
-                            <div style="font-size: 1.35rem; font-weight: 600; color: white;">${item.target}</div>
-                            <div style="font-size: 0.82rem; color: #88f0e0; margin-top: 4px; word-break: break-all;">${item.url}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xl font-semibold text-white truncate">${item.target}</div>
+                            <div class="text-xs text-cyan-300 mt-1 break-all">${item.url}</div>
                         </div>
-                        <div class="status-badge" style="background: rgba(0,245,212,0.1); color: ${status.color}; border: 1px solid ${status.color}20;">
+                        <div class="status-badge ml-3"
+                             style="background: rgba(0,245,212,0.08); color: ${status.color}; border: 1px solid ${status.color}30;">
                             ${status.text}
                         </div>
                     </div>
 
-                    <div class="text-center mt-8 mb-6">
+                    <div class="text-center my-10">
                         <div class="response-time" style="color: ${status.color};">
-                            ${item.response_time ? item.response_time.toFixed(1) : '—'}
-                            <span style="font-size: 1.5rem; font-weight: 400;">ms</span>
+                            ${ms ? ms.toFixed(1) : '—'}
+                            <span style="font-size: 1.4rem; font-weight: 400;">ms</span>
                         </div>
                     </div>
 
-                    <div style="text-align: center; padding-top: 16px; border-top: 1px solid rgba(0,245,212,0.15);">
-                        <div style="font-size: 0.78rem; color: #88f0e0;">采样时间</div>
-                        <div style="font-family: monospace; color: #00f5d4;">${item.timestamp}</div>
+                    <div class="text-center pt-5 border-t border-cyan-500/20">
+                        <div class="text-xs text-cyan-400/70">采样时间</div>
+                        <div class="font-mono text-sm text-cyan-300 mt-1">${item.timestamp}</div>
                     </div>
                 </div>
             `;
@@ -171,10 +192,65 @@
         });
     }
 
+    function updateChart(historyData) {
+        const ctx = document.getElementById('responseTrendChart');
+        if (responseChart) responseChart.destroy();
+
+        responseChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: historyData.labels || [],
+                datasets: historyData.datasets.map((ds, i) => ({
+                    ...ds,
+                    borderColor: colors[i % colors.length],
+                    backgroundColor: 'transparent',
+                    borderWidth: 3.5,
+                    tension: 0.4,
+                    pointRadius: 2,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#0a0e17'
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 800 },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        align: 'start',
+                        labels: {
+                            color: '#a0f0e8',
+                            font: { size: 13 },
+                            padding: 18,
+                            boxWidth: 14
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleColor: '#67e8f9',
+                        bodyColor: '#e2e8f0',
+                        padding: 12
+                    }
+                },
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(0, 245, 212, 0.08)' },
+                        ticks: { color: '#88f0e0', font: { size: 12 } }
+                    },
+                    x: {
+                        grid: { color: 'rgba(0, 245, 212, 0.08)' },
+                        ticks: { color: '#88f0e0', font: { size: 12 }, maxRotation: 45 }
+                    }
+                }
+            }
+        });
+    }
+
     async function fetchData() {
         const btn = document.getElementById('refresh-btn');
         const originalHTML = btn.innerHTML;
-        btn.innerHTML = `<span class="text-2xl animate-spin inline-block">⟳</span> 加载中...`;
+        btn.innerHTML = `<span class="animate-spin inline-block mr-2">⟳</span>加载中...`;
         btn.disabled = true;
 
         try {
@@ -182,7 +258,7 @@
             const json = await res.json();
 
             if (json.code === 0 && json.data) {
-                createCards(json.data.results);
+                createCards(json.data.results || []);
 
                 if (json.data.history) {
                     updateChart(json.data.history);
@@ -191,6 +267,7 @@
                 const now = new Date().toLocaleTimeString('zh-CN', {
                     hour: '2-digit', minute: '2-digit', second: '2-digit'
                 });
+
                 document.getElementById('last-updated').textContent = now;
                 document.getElementById('chart-last-updated').textContent = `更新于 ${now}`;
             }
@@ -202,57 +279,10 @@
         }
     }
 
-    function updateChart(historyData) {
-        const ctx = document.getElementById('responseTrendChart');
-        if (responseChart) responseChart.destroy();
-
-        responseChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: historyData.labels,
-                datasets: historyData.datasets.map((ds, i) => ({
-                    ...ds,
-                    borderColor: colors[i % colors.length],
-                    backgroundColor: 'transparent',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    pointRadius: 1.5,
-                    pointHoverRadius: 6
-                }))
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: {
-                    duration: 0          // 关键：关闭动画，显著减少卡顿
-                },
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: '#a0f0e8',
-                            font: { size: 13 },
-                            padding: 20
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        grid: { color: 'rgba(0, 245, 212, 0.08)' },
-                        ticks: { color: '#88f0e0' }
-                    },
-                    x: {
-                        grid: { color: 'rgba(0, 245, 212, 0.08)' },
-                        ticks: { color: '#88f0e0' }
-                    }
-                }
-            }
-        });
-    }
-
     // 初始化
-    document.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('load', () => {
         fetchData();
-        // 改为每60秒刷新一次，减少请求压力
+        // 每60秒自动刷新一次（适合HTTP监控）
         setInterval(fetchData, 60000);
     });
 </script>

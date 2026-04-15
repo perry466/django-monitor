@@ -1,5 +1,6 @@
 # django-monitor-main/monitor/api.py
 from django.http import JsonResponse
+from django.utils import timezone
 from monitor.models import MonitorResult, MonitorTarget
 from .monitoring import (
     ping_host,
@@ -77,7 +78,7 @@ def multi_ping_api(request):
             latest = MonitorResult.objects.filter(target__address=target['address']).order_by('-timestamp').first()
             ping_time = round(latest.ping_time, 1) if latest and latest.ping_time is not None else 0
             packet_loss = round(latest.packet_loss, 1) if latest and latest.packet_loss is not None else 0
-            timestamp = latest.timestamp.strftime('%H:%M:%S') if latest else '无数据'
+            timestamp = timezone.localtime(latest.timestamp).strftime('%H:%M:%S') if latest else '无数据'
 
             results.append({
                 'target': target['name'],
@@ -87,7 +88,7 @@ def multi_ping_api(request):
             })
 
             history = MonitorResult.objects.filter(target__address=target['address']).order_by('-timestamp')[:20]
-            time_labels = [h.timestamp.strftime('%H:%M') for h in reversed(history)]
+            time_labels = [timezone.localtime(h.timestamp).strftime('%H:%M') for h in reversed(history)]
             latency_values = [h.ping_time or 0 for h in reversed(history)]
             while len(time_labels) < 20:
                 time_labels.insert(0, f"历史-{20-len(time_labels)}")
@@ -186,7 +187,7 @@ def multi_http_api(request):
         for idx, target in enumerate(targets_list):
             latest = MonitorResult.objects.filter(target__address=target['address']).order_by('-timestamp').first()
             http_time = round(latest.http_response_time, 1) if latest and latest.http_response_time is not None else 0
-            timestamp = latest.timestamp.strftime('%H:%M:%S') if latest else '无数据'
+            timestamp = timezone.localtime(latest.timestamp).strftime('%H:%M:%S') if latest else '无数据'
 
             results.append({
                 'target': target['name'],
@@ -196,7 +197,7 @@ def multi_http_api(request):
             })
 
             history = MonitorResult.objects.filter(target__address=target['address']).order_by('-timestamp')[:20]
-            time_labels = [h.timestamp.strftime('%H:%M') for h in reversed(history)]
+            time_labels = [timezone.localtime(h.timestamp).strftime('%H:%M') for h in reversed(history)]
             response_values = [h.http_response_time or 0 for h in reversed(history)]
             while len(time_labels) < 20:
                 time_labels.insert(0, f"历史-{20-len(time_labels)}")
@@ -259,7 +260,7 @@ def multi_dns_api(request):
         for idx, target in enumerate(targets_list):
             latest = MonitorResult.objects.filter(target__address=target['address']).order_by('-timestamp').first()
             dns_time = round(latest.dns_resolve_time, 2) if latest and latest.dns_resolve_time is not None else 0
-            timestamp = latest.timestamp.strftime('%H:%M:%S') if latest else '无数据'
+            timestamp = timezone.localtime(latest.timestamp).strftime('%H:%M:%S') if latest else '无数据'
 
             results.append({
                 'target': target['name'],
@@ -269,7 +270,7 @@ def multi_dns_api(request):
             })
 
             history = MonitorResult.objects.filter(target__address=target['address']).order_by('-timestamp')[:20]
-            time_labels = [h.timestamp.strftime('%H:%M') for h in reversed(history)]
+            time_labels = [timezone.localtime(h.timestamp).strftime('%H:%M') for h in reversed(history)]
             dns_values = [round(h.dns_resolve_time or 0, 2) for h in reversed(history)]
             while len(time_labels) < 20:
                 time_labels.insert(0, f"历史-{20-len(time_labels)}")
@@ -336,11 +337,11 @@ def multi_jitter_api(request):
                 'target': target['name'],
                 'jitter': jitter,
                 'avg_latency': ping_time,
-                'timestamp': latest.timestamp.strftime('%H:%M:%S') if latest else '无数据'
+                'timestamp': timezone.localtime(latest.timestamp).strftime('%H:%M:%S') if latest else '无数据'
             })
 
             history = MonitorResult.objects.filter(target__address=target['address']).order_by('-timestamp')[:20]
-            time_labels = [h.timestamp.strftime('%H:%M') for h in reversed(history)]
+            time_labels = [timezone.localtime(h.timestamp).strftime('%H:%M') for h in reversed(history)]
             jitter_values = [round(h.network_jitter or 0, 2) for h in reversed(history)]
             while len(time_labels) < 20:
                 time_labels.insert(0, f"历史-{20-len(time_labels)}")
@@ -407,7 +408,7 @@ def multi_tcp_retrans_api(request):
             tcp_retransmit_rate__isnull=False
         ).order_by('-timestamp')[:20]
 
-        time_labels = [h.timestamp.strftime('%H:%M') for h in reversed(history)]
+        time_labels = [timezone.localtime(h.timestamp).strftime('%H:%M') for h in reversed(history)]
         rate_values = [round(h.tcp_retransmit_rate or 0, 3) for h in reversed(history)]
 
         while len(time_labels) < 20:
@@ -417,7 +418,7 @@ def multi_tcp_retrans_api(request):
         return success({
             'current_rate': current_rate,
             'status': latest.status if latest else 'unknown',
-            'timestamp': latest.timestamp.strftime('%H:%M:%S') if latest else '无数据',
+            'timestamp': timezone.localtime(latest.timestamp).strftime('%H:%M:%S') if latest else '无数据',
             'history': {
                 'labels': time_labels,
                 'datasets': [{
@@ -473,7 +474,7 @@ def multi_loss_api(request):
         for idx, target in enumerate(targets_list):
             latest = MonitorResult.objects.filter(target__address=target['address']).order_by('-timestamp').first()
             packet_loss = round(latest.packet_loss, 1) if latest and latest.packet_loss is not None else 0.0
-            timestamp = latest.timestamp.strftime('%H:%M:%S') if latest else '无数据'
+            timestamp = timezone.localtime(latest.timestamp).strftime('%H:%M:%S') if latest else '无数据'
 
             results.append({
                 'target': target['name'],
@@ -483,7 +484,7 @@ def multi_loss_api(request):
 
             # 历史数据（最近20次）
             history = MonitorResult.objects.filter(target__address=target['address']).order_by('-timestamp')[:20]
-            time_labels = [h.timestamp.strftime('%H:%M') for h in reversed(history)]
+            time_labels = [timezone.localtime(h.timestamp).strftime('%H:%M') for h in reversed(history)]
             loss_values = [round(h.packet_loss or 0, 1) for h in reversed(history)]
             while len(time_labels) < 20:
                 time_labels.insert(0, f"历史-{20 - len(time_labels)}")

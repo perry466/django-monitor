@@ -156,7 +156,6 @@
         font-weight: 700;
     }
 
-    /* 跳转组件 */
     .jump-box {
         display: flex;
         align-items: center;
@@ -235,7 +234,6 @@
                 查询
             </button>
 
-            <!-- 只在这里新增下载按钮，紧挨查询按钮右侧 -->
             <button onclick="downloadLogs()" class="download-btn">
                 <span class="text-xl">⬇️</span>
                 下载日志
@@ -243,7 +241,7 @@
         </div>
     </div>
 
-    <!-- 日志表格（完全不动） -->
+    <!-- 日志表格 -->
     <div class="neon-card rounded-3xl overflow-hidden">
         <div class="overflow-x-auto">
             <table class="log-table w-full">
@@ -261,7 +259,7 @@
         </div>
     </div>
 
-    <!-- 底部分页栏（完全不动） -->
+    <!-- 底部分页栏 -->
     <div class="footer-bar">
         <nav>
             <ul class="pagination" id="pagination"></ul>
@@ -297,7 +295,7 @@ function downloadLogs() {
     window.location.href = url;
 }
 
-// ==================== 下面是你原来的所有 JS 代码，完全不动 ====================
+// 加载日志（已修改为每页显示 10 条）
 async function loadLogs(page = 1) {
     currentPage = page;
 
@@ -306,7 +304,8 @@ async function loadLogs(page = 1) {
     const start_date = document.getElementById('start_date').value;
     const end_date = document.getElementById('end_date').value;
 
-    let url = `/logs/api/system-logs/?page=${page}&per_page=15&log_type=${log_type}&period=${period}`;
+    // 修改 per_page=10
+    let url = `/logs/api/system-logs/?page=${page}&per_page=10&log_type=${log_type}&period=${period}`;
     if (period === 'custom' && start_date && end_date) {
         url += `&start_date=${start_date}&end_date=${end_date}`;
     }
@@ -336,7 +335,7 @@ async function loadLogs(page = 1) {
                     <td>${log.created_at}</td>
                     <td><strong>${log.target}</strong></td>
                     <td><span class="${typeClass}">${log.log_type}</span></td>
-                    <td><span class="text-emerald-400">✅ 正常</span></td>
+                    <td><span class="${log.status_class}">${log.status_text}</span></td>
                     <td class="log-result">${log.result}</td>
                 </tr>`;
         });
@@ -380,7 +379,6 @@ function renderPagination(total, current) {
         html += `<li><a class="page-link" href="#" onclick="loadLogs(${total}); return false;">${total}</a></li>`;
     }
 
-    // 跳转组件
     html += `
         <li style="margin: 0 12px;">
             <div class="jump-box">

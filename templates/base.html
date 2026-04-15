@@ -114,7 +114,8 @@
     <!-- 遮罩层 -->
     <div class="overlay" id="overlay"></div>
 
-    <!-- 侧边栏（完整菜单） -->
+            <!-- 侧边栏 - 只在已登录且不在登录/注册页面时显示 -->
+    {% if user.is_authenticated and '/login/' not in request.path and '/accounts/register/' not in request.path %}
     <div class="sidebar" id="sidebar">
         <div class="p-6 border-b border-cyan-500/30">
             <div class="logo-font text-3xl font-bold tracking-widest text-white">Booker Tao</div>
@@ -137,8 +138,9 @@
             <a href="{% url 'logs:system_logs' %}" class="menu-item"><span class="mr-4 text-lg">📋</span> 系统日志</a>
         </div>
     </div>
+    {% endif %}
 
-    <!-- 顶部栏 -->
+        <!-- 顶部栏 -->
     <div class="top-bar flex items-center justify-between">
         <div class="flex items-center gap-3">
             <button id="sidebar-toggle" class="w-11 h-11 flex items-center justify-center text-3xl text-cyan-400 hover:text-white transition-all">
@@ -146,7 +148,35 @@
             </button>
             <div class="logo-font text-2xl font-semibold tracking-wider hidden sm:block">BookerTao MONITOR</div>
         </div>
-        <div class="time text-sm text-cyan-300 font-medium" id="current-time"></div>
+
+        <!-- 右侧：登录状态 + 时间 -->
+        <div class="flex items-center gap-6">
+            <div class="time text-sm text-cyan-300 font-medium" id="current-time"></div>
+
+            {% if user.is_authenticated %}
+                <div class="flex items-center gap-4">
+                    <span class="text-emerald-400 text-sm font-medium flex items-center gap-1">
+                        👤 {{ user.username }}
+                    </span>
+                    <a href="{% url 'accounts:logout' %}"
+                       onclick="return confirm('确定要登出吗？')"
+                       class="bg-red-600 hover:bg-red-500 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                        登出
+                    </a>
+                </div>
+            {% else %}
+                <div class="flex items-center gap-3">
+                    <a href="{% url 'accounts:login' %}"
+                       class="bg-emerald-600 hover:bg-emerald-500 px-5 py-1.5 rounded-lg text-sm font-medium transition">
+                        登录
+                    </a>
+                    <a href="{% url 'accounts:register' %}"
+                       class="bg-zinc-700 hover:bg-zinc-600 px-5 py-1.5 rounded-lg text-sm font-medium transition">
+                        注册
+                    </a>
+                </div>
+            {% endif %}
+        </div>
     </div>
 
     <!-- 主内容（完全不改布局） -->

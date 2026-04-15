@@ -6,14 +6,14 @@ import json
 import os
 from datetime import datetime, timedelta
 from django.utils import timezone
-
 from openai import OpenAI
-
 # ==================== 正确导入模型 ====================
 from .models import AIConfig, MonitorLog, AIReport
 from monitor.models import MonitorResult
 # ===================================================
+from django.contrib.auth.decorators import login_required
 
+@login_required(login_url='/login/')
 def ai_analysis(request):
     """AI 智能分析页面"""
     ai_config = AIConfig.objects.filter(is_active=True).first()
@@ -28,6 +28,7 @@ def ai_analysis(request):
 
 
 @csrf_exempt
+@login_required(login_url='/login/')
 def ai_generate_report(request):
     """生成 AI 诊断报告"""
     if request.method != 'POST':
@@ -139,6 +140,7 @@ def ai_generate_report(request):
 
 
 @csrf_exempt
+@login_required(login_url='/login/')
 def ai_analyze_logs(request):
     """AI 分析系统日志"""
     if request.method != 'POST':
@@ -285,6 +287,7 @@ def ai_analyze_logs(request):
 
 
 @csrf_exempt
+@login_required(login_url='/login/')
 def save_ai_config(request):
     """保存 AI 配置"""
     if request.method != 'POST':
@@ -320,12 +323,14 @@ def save_ai_config(request):
 
 
 # ====================== 系统日志功能 ======================
+@login_required(login_url='/login/')
 def system_logs(request):
     """系统日志主页面"""
     return render(request, 'logs/system_logs.html')
 
 
 @csrf_exempt
+@login_required(login_url='/login/')
 def get_system_logs(request):
     """系统日志 - 直接从 MonitorResult 读取原始监控数据（适配当前前端）"""
     if request.method != 'GET':
@@ -452,6 +457,7 @@ def get_system_logs(request):
 
 # ====================== 新增：获取最近AI报告 ======================
 @csrf_exempt
+@login_required(login_url='/login/')
 def get_recent_ai_reports(request):
     """获取最近20次AI报告（仪表盘使用）"""
     if request.method != 'GET':
@@ -494,6 +500,8 @@ from django.http import HttpResponse
 import csv
 from datetime import timedelta
 
+@csrf_exempt
+@login_required(login_url='/login/')
 def download_logs(request):
     """下载系统日志为 CSV 文件（支持当前筛选条件）"""
     try:

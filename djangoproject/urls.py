@@ -19,6 +19,7 @@ from django.urls import path, include
 from django.http import HttpResponse
 from monitor.views import dashboard
 from logs.views import ai_analysis
+from accounts.views import login_view
 
 def home(request):
     return HttpResponse("监控系统首页")
@@ -27,8 +28,15 @@ def home(request):
 urlpatterns = [
     path('', dashboard,name='home'),
     path('admin/', admin.site.urls),
+
     path('monitor/', include('monitor.urls')),
     path('targets/', include('targets.urls')),
     path('logs/', include('logs.urls')),
+
     path('ai-analysis/',ai_analysis,name='ai_analysis'),
+
+    # 认证路由
+    path('accounts/', include('accounts.urls',namespace='accounts')),
+    path('login/',login_view,name='login'),
+
 ]

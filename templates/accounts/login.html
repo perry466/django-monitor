@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}登录 - NEON MONITOR{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto mt-20 bg-zinc-900 p-8 rounded-2xl shadow-xl">
+    <h2 class="text-3xl font-bold text-center mb-8 text-white">用户登录</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="mb-4 p-4 rounded-lg text-center
+                 {% if message.tags == 'error' %}bg-red-600{% else %}bg-green-600{% endif %} text-white">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post" autocomplete="off">
+        {% csrf_token %}
+
+        <div class="mb-6">
+            <label class="block text-sm text-gray-400 mb-2">用户名</label>
+            <input type="text"
+                   name="username"
+                   autocomplete="off"
+                   autocorrect="off"
+                   autocapitalize="off"
+                   spellcheck="false"
+                   required
+                   class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-sm text-gray-400 mb-2">密码</label>
+            <input type="password"
+                   name="password"
+                   autocomplete="new-password"
+                   required
+                   class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <button type="submit"
+                class="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-lg font-medium text-white transition">
+            登录
+        </button>
+    </form>
+
+    <div class="text-center mt-6 text-sm text-gray-400">
+        没有账号？
+        <a href="{% url 'accounts:register' %}" class="text-emerald-400 hover:underline">立即注册</a>
+    </div>
+</div>
+{% endblock %}

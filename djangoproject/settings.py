@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = 'django-insecure-!v-_%8@wxn93!*ayy7)t&6_!6=s#g46&a=+0ut%vils7i0-=a&'
 
-DEBUG = False
+DEBUG = True
 ALLOWED_HOSTS = ['127.0.0.1','localhost','真实域名']
 
 # Application definition
@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'logs',
     'targets',
     'monitor',
+    'accounts'
 ]
 
 MIDDLEWARE = [
@@ -106,3 +107,12 @@ load_dotenv(BASE_DIR / '.env')
 
 # ====================== 可选优化（推荐保留） ======================
 # 在模板中可以使用 {{ time|date:"Y-m-d H:i:s" }} 来正确显示本地时间
+
+
+
+# ====================== 认证配置 ======================
+LOGIN_URL = '/login/'                    # 未登录时跳转到登录页
+LOGIN_REDIRECT_URL = '/'                 # 登录成功后默认跳转到仪表盘
+LOGOUT_REDIRECT_URL = '/login/'          # 登出后跳转到登录页
+
+ALLOWED_HOSTS = ['127.0.0.1','localhost']

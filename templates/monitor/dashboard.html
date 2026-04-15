@@ -15,6 +15,27 @@
         border-color: rgba(0, 245, 212, 0.6);
     }
 
+    /* 与 Ping 页面完全一致的刷新按钮样式 */
+    .refresh-btn {
+        background: rgba(0, 245, 212, 0.08);
+        border: 2px solid #00f5d4;
+        color: #00f5d4;
+        padding: 14px 36px;
+        border-radius: 9999px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 20px rgba(0, 245, 212, 0.35);
+    }
+    .refresh-btn:hover {
+        background: #00f5d4;
+        color: #0a0e17;
+        box-shadow: 0 0 30px rgba(0, 245, 212, 0.6);
+        transform: translateY(-2px);
+    }
+
     .stat-value {
         font-size: clamp(2.5rem, 8vw, 4.5rem);
         font-weight: 700;
@@ -52,7 +73,6 @@
         font-style: italic;
     }
 
-    /* 小屏优化 */
     @media (max-width: 640px) {
         .stat-value {
             font-size: 3.2rem;
@@ -77,9 +97,10 @@
                 </p>
             </div>
 
-            <button onclick="refreshDashboard()"
-                    class="w-full sm:w-auto px-8 py-3.5 bg-[#00f5d4] hover:bg-[#00e6c8] text-black font-medium rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-cyan-500/30">
-                🔄 立即刷新
+            <!-- 修改后的刷新按钮（与 Ping 页面完全一致） -->
+            <button onclick="refreshDashboard()" id="refresh-btn" class="refresh-btn w-full sm:w-auto justify-center">
+                <span class="text-xl">🔄</span>
+                立即刷新
             </button>
         </div>
 
@@ -249,6 +270,11 @@
     }
 
     function refreshDashboard() {
+        const btn = document.getElementById('refresh-btn');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = `<span class="animate-spin inline-block mr-2">⟳</span>刷新中...`;
+        btn.disabled = true;
+
         // 刷新系统资源
         fetch('/monitor/api/system/')
             .then(response => response.json())
@@ -261,6 +287,12 @@
 
         // 同时刷新AI报告
         loadLatestAIReport();
+
+        // 恢复按钮
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }, 800);
     }
 
     // 页面初始化

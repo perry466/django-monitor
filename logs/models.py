@@ -1,3 +1,4 @@
+# django-monitor-main/logs/models.py
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
@@ -84,3 +85,37 @@ class AIConfig(models.Model):
 
     def __str__(self):
         return f"{self.provider} - {self.model_name}"
+
+
+# ====================== 新增：AI分析报告保存模型 ======================
+class AIReport(models.Model):
+    """保存 AI 生成的分析报告（支持监控数据和系统日志两种类型）"""
+    REPORT_TYPE_CHOICES = [
+        ('monitor', '监控数据分析'),
+        ('logs', '系统日志分析'),
+    ]
+
+    report_type = models.CharField(
+        max_length=20,
+        choices=REPORT_TYPE_CHOICES,
+        default='monitor',
+        verbose_name='报告类型'
+    )
+    title = models.CharField(max_length=200, default='网络诊断报告', verbose_name='报告标题')
+    content = models.TextField(verbose_name='报告内容')
+    model_used = models.CharField(max_length=100, verbose_name='使用的AI模型')
+    health_score = models.CharField(
+        max_length=20,
+        verbose_name='健康评分',
+        help_text='优秀 / 良好 / 需关注 / 严重'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='生成时间')
+
+    class Meta:
+        db_table = 'logs_aireport'
+        verbose_name = 'AI分析报告'
+        verbose_name_plural = 'AI分析报告'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.created_at.strftime('%Y-%m-%d %H:%M')}] {self.get_report_type_display()} - {self.health_score}"

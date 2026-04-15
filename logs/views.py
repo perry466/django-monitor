@@ -10,7 +10,7 @@ from django.utils import timezone
 from openai import OpenAI
 
 # ==================== 正确导入模型 ====================
-from .models import AIConfig, MonitorLog
+from .models import AIConfig, MonitorLog,AIReport
 from monitor.models import MonitorResult
 # ===================================================
 
@@ -112,6 +112,28 @@ def ai_generate_report(request):
         )
 
         report = response.choices[0].message.content.strip()
+        # ==================== 新增：自动保存监控数据分析报告 ====================
+        try:
+            lines = [line.strip() for line in report.strip().split('\n') if line.strip()]
+            health_score = lines[0] if lines and lines[0] in ["优秀", "良好", "需关注", "严重"] else "需关注"
+
+            AIReport.objects.create(
+                report_type='monitor',
+                title='网络监控诊断报告',
+                content=report,
+                model_used=f"{config.provider} - {config.model_name}",
+                health_score=health_score
+            )
+            print(f"✅ AI监控报告已保存 - 评分: {health_score}")
+        except Exception as save_e:
+            print(f"⚠️ 保存AI监控报告失败: {save_e}")
+        # ============================================================
+
+        return JsonResponse({
+            'success': True,
+            'report': report,
+            'model_used': f"{config.provider} - {config.model_name}"
+        })
 
         return JsonResponse({
             'success': True,
@@ -214,6 +236,29 @@ def ai_analyze_logs(request):
         )
 
         report = response.choices[0].message.content.strip()
+        # ==================== 新增：自动保存系统日志分析报告 ====================
+        try:
+            lines = [line.strip() for line in report.strip().split('\n') if line.strip()]
+            health_score = lines[0] if lines and lines[0] in ["优秀", "良好", "需关注", "严重"] else "需关注"
+
+            AIReport.objects.create(
+                report_type='logs',
+                title='系统日志分析报告',
+                content=report,
+                model_used=f"{config.provider} - {config.model_name}",
+                health_score=health_score
+            )
+            print(f"✅ AI日志报告已保存 - 评分: {health_score}")
+        except Exception as save_e:
+            print(f"⚠️ 保存AI日志报告失败: {save_e}")
+        # ============================================================
+
+        return JsonResponse({
+            'success': True,
+            'report': report,
+            'model_used': f"{config.provider} - {config.model_name}",
+            'log_count': len(logs_data)
+        })
 
         return JsonResponse({
             'success': True,
@@ -365,6 +410,45 @@ def get_system_logs(request):
             'total_pages': (total + per_page - 1) // per_page if total > 0 else 0
         })
 
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# ====================== 新增：获取最近AI报告 ======================
+@csrf_exempt
+def get_recent_ai_reports(request):
+    """获取最近20次AI报告（仪表盘使用）"""
+    if request.method != 'GET':
+        return JsonResponse({'success': False, 'error': '只支持GET请求'}, status=405)
+
+    try:
+        reports = AIReport.objects.all()[:20]
+
+        report_list = [{
+            'id': r.id,
+            'type': r.get_report_type_display(),
+            'title': r.title,
+            'content': r.content,
+            'health_score': r.health_score,
+            'model_used': r.model_used,
+            'created_at': r.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        } for r in reports]
+
+        latest = reports.first()
+
+        return JsonResponse({
+            'success': True,
+            'reports': report_list,
+            'latest': {
+                'id': latest.id,
+                'content': latest.content,
+                'health_score': latest.health_score,
+                'model_used': latest.model_used,
+                'created_at': latest.created_at.strftime('%Y-%m-%d %H:%M')
+            } if latest else None
+        })
     except Exception as e:
         import traceback
         traceback.print_exc()

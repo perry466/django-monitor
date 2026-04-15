@@ -5,7 +5,7 @@ from .views import (
     save_ai_config,
     system_logs,
     get_system_logs,
-    ai_analyze_logs
+    ai_analyze_logs, get_recent_ai_reports
 
 )
 app_name = 'logs'
@@ -19,4 +19,5 @@ urlpatterns = [
     # 系统日志
     path('system-logs/', system_logs, name='system_logs'),
     path('api/system-logs/', get_system_logs, name='get_system_logs'),
+    path('api/recent-ai-reports/',get_recent_ai_reports, name='recent_ai_reports'),
 ]

@@ -10,11 +10,32 @@
         box-shadow: 0 0 15px rgba(0, 245, 212, 0.2);
     }
     .progress-bar {
-        transition: width 0.6s ease;   /* 降低动画消耗 */
+        transition: width 0.6s ease;
     }
     .stat-value {
         font-size: 3.2rem;
         font-weight: 700;
+    }
+    .health-score {
+        font-size: 1.5rem;
+        font-weight: bold;
+        padding: 10px 20px;
+        border-radius: 12px;
+        display: inline-block;
+        margin-bottom: 16px;
+    }
+    .excellent { background: #22c55e; color: #000; }
+    .good     { background: #eab308; color: #000; }
+    .warning  { background: #f97316; color: #fff; }
+    .critical { background: #ef4444; color: #fff; }
+    .report-text {
+        line-height: 1.75;
+        color: #e5e7eb;
+        white-space: pre-wrap;
+    }
+    .no-report {
+        color: #9ca3af;
+        font-style: italic;
     }
 </style>
 {% endblock %}
@@ -95,18 +116,23 @@
             </div>
         </div>
 
-        <!-- AI 分析报告占位区 -->
+        <!-- AI 智能分析报告（已支持持久化显示） -->
         <div class="neon-card rounded-3xl p-8">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-2xl font-semibold tracking-wider text-white">🤖 AI 智能分析报告</h3>
-                <span class="text-xs uppercase tracking-widest text-cyan-300">最近一次分析</span>
+                <h3 class="text-2xl font-semibold tracking-wider text-white flex items-center gap-3">
+                    🤖 AI 智能分析报告
+                </h3>
+                <span id="report-time" class="text-xs uppercase tracking-widest text-cyan-300">最近一次分析：——</span>
             </div>
 
-            <div id="ai-report-placeholder" class="min-h-[260px] flex items-center justify-center border border-dashed border-cyan-500/30 rounded-2xl">
-                <div class="text-center">
-                    <div class="text-5xl mb-4 opacity-40">🧠</div>
-                    <p class="text-[#88f0e0] text-lg">AI 分析报告区域</p>
-                    <p class="text-xs text-cyan-400/70 mt-2">此处将显示最近一次的智能诊断与优化建议</p>
+            <div id="ai-report-content" class="min-h-[280px] bg-[#0f172a] rounded-2xl p-8 border border-cyan-500/20">
+                <!-- 动态加载内容 -->
+                <div id="ai-report-placeholder" class="flex items-center justify-center h-full">
+                    <div class="text-center">
+                        <div class="text-5xl mb-4 opacity-40">🧠</div>
+                        <p class="text-[#88f0e0] text-lg">暂无分析报告</p>
+                        <p class="text-xs text-cyan-400/70 mt-2">请前往「AI智能分析」页面生成一份诊断报告</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -151,15 +177,67 @@
                     updateDashboard(result.data);
                 }
             })
+            .catch(err => console.error("获取系统数据失败:", err));
+    }
+
+    // ==================== 新增：加载最新 AI 报告 ====================
+    function loadLatestAIReport() {
+        fetch('/logs/api/recent-ai-reports/')
+            .then(response => response.json())
+            .then(data => {
+                const placeholder = document.getElementById('ai-report-placeholder');
+                const contentDiv = document.getElementById('ai-report-content');
+
+                if (data.success && data.latest && data.latest.content) {
+                    const score = data.latest.health_score || '需关注';
+                    let scoreClass = 'warning';
+                    if (score === '优秀') scoreClass = 'excellent';
+                    else if (score === '良好') scoreClass = 'good';
+                    else if (score === '需关注') scoreClass = 'warning';
+                    else if (score === '严重') scoreClass = 'critical';
+
+                    contentDiv.innerHTML = `
+                        <div class="health-score ${scoreClass}">${score}</div>
+                        <div class="report-text">${data.latest.content.replace(/\n/g, '<br>')}</div>
+                        <div class="mt-6 pt-4 border-t border-cyan-500/20 text-xs text-cyan-400/70">
+                            模型：${data.latest.model_used || '未知'}<br>
+                            生成时间：${data.latest.created_at}
+                        </div>
+                    `;
+                    document.getElementById('report-time').textContent =
+                        `最近一次分析：${data.latest.created_at}`;
+                } else {
+                    // 显示占位提示
+                    placeholder.style.display = 'flex';
+                }
+            })
             .catch(err => {
-                console.error("获取系统数据失败:", err);
+                console.error("加载AI报告失败:", err);
             });
     }
 
-    // 页面加载后自动刷新，每15秒更新一次（降低频率减少卡顿）
+    // 页面加载后自动执行
     window.addEventListener('load', () => {
         refreshDashboard();
-        setInterval(refreshDashboard, 15000);
+        loadLatestAIReport();           // 加载AI报告
+        setInterval(refreshDashboard, 15000);   // 系统资源每15秒刷新
+        // AI报告不需要频繁刷新，刷新页面或手动点击“立即刷新”按钮时会重新加载
     });
+
+    // 点击“立即刷新”按钮时同时刷新AI报告
+    window.refreshDashboard = function() {
+        // 原有系统资源刷新
+        fetch('/monitor/api/system/')
+            .then(response => response.json())
+            .then(result => {
+                if (result.code === 0 && result.data) {
+                    updateDashboard(result.data);
+                }
+            })
+            .catch(err => console.error("获取系统数据失败:", err));
+
+        // 同时刷新AI报告
+        loadLatestAIReport();
+    };
 </script>
 {% endblock %}

@@ -24,7 +24,6 @@ from accounts.views import login_view
 def home(request):
     return HttpResponse("监控系统首页")
 
-
 urlpatterns = [
     path('', dashboard,name='home'),
     path('admin/', admin.site.urls),

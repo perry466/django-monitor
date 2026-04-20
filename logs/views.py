@@ -21,7 +21,7 @@ def ai_analysis(request):
         ai_config = AIConfig.objects.create()
 
     context = {
-        'title': 'AI 智能分析 - NEON MONITOR',
+        'title': 'AI 智能分析 - BookerTao MONITOR',
         'ai_config': ai_config,
     }
     return render(request, 'logs/ai_analysis.html', context)

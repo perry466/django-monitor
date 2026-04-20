@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = 'REDACTED'
 
-DEBUG = True
+DEBUG = False
 ALLOWED_HOSTS = ['127.0.0.1','localhost','真实域名']
 
 # Application definition

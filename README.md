@@ -1,10 +1,6 @@
 # BookerTao MONITOR - 网络监控系统
 
-https://img.shields.io/badge/Django-6.0.4-green.svg
-https://img.shields.io/badge/Python-3.8+-blue.svg
-https://img.shields.io/badge/License-MIT-yellow.svg
-
-一个功能完善的**企业级网络监控系统**，支持多目标实时监控、AI智能分析、可视化仪表盘等功能。
+AI智能分析、可视化仪表盘等功能。
 
 ## ✨ 核心特性
 
@@ -45,24 +41,75 @@ https://img.shields.io/badge/License-MIT-yellow.svg
 
 ### 1. 环境要求
 
-- Python >= 3.8
+- Python >= 3.14
 - MySQL >= 8.0
 - pip
 
-### 2. 克隆项目
+### 2. 安装MySQL
 
-bash
+#### Windows
+
+```
+# 下载MySQL Installer
+https://dev.mysql.com/downloads/installer/
+
+# 或使用winget
+winget install MySQL.MySQL
+```
+
+#### Ubuntu/Debian
+
+```
+sudo apt update
+sudo apt install mysql-server-8.0
+sudo systemctl start mysql
+sudo systemctl enable mysql
+```
+
+#### CentOS/RHEL
+
+```
+sudo yum install mysql-server
+sudo systemctl start mysqld
+sudo systemctl enable mysqld
+```
+
+#### macOS
+
+```
+brew install mysql
+brew services start mysql
+```
+
+### 3. 安装mysqlclient前置依赖
+
+#### Ubuntu/Debian
+
+```
+sudo apt-get install -y pkg-config libmysqlclient-dev python3-dev build-essential
+```
+
+#### CentOS/RHEL
+
+```
+sudo yum install -y pkgconfig mysql-devel python3-devel gcc
+```
+
+#### macOS
+
+```
+brew install pkg-config mysql-client
+export PATH="/usr/local/opt/mysql-client/bin:$PATH"
+```
+
+### 4. 克隆项目
 
 ```
 git clone https://github.com/your-repo/django-monitor.git
 cd django-monitor
 ```
 
-
-
-### 3. 创建虚拟环境
-
-bash
+### 5. 创建虚拟环境
 
 ```
 # Windows
@@ -74,33 +121,21 @@ python3 -m venv ll_env
 source ll_env/bin/activate
 ```
 
-
-
-### 4. 安装依赖
-
-bash
+### 6. 安装依赖
 
 ```
 pip install -r requirements.txt
 ```
 
-
-
-### 5. 数据库配置
+### 7. 数据库配置
 
 创建MySQL数据库：
-
-sql
 
 ```
 CREATE DATABASE network_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-
-
 修改 `djangoproject/settings.py` 中的数据库配置：
-
-python
 
 ```
 DATABASES = {
@@ -115,13 +150,9 @@ DATABASES = {
 }
 ```
 
-
-
-### 6. 环境变量配置
+### 8. 环境变量配置
 
 复制 `.env` 文件并配置API密钥：
-
-bash
 
 ```
 # .env
@@ -130,38 +161,24 @@ DEEPSEEK_API_KEY=your_deepseek_api_key
 # DASHSCOPE_API_KEY=your_dashscope_api_key
 ```
 
-
-
-### 7. 数据库迁移
-
-bash
+### 9. 数据库迁移
 
 ```
 python manage.py makemigrations
 python manage.py migrate
 ```
 
-
-
-### 8. 创建超级管理员
-
-bash
+### 10. 创建超级管理员
 
 ```
 python manage.py createsuperuser
 ```
 
-
-
-### 9. 启动服务
-
-bash
+### 11. 启动服务
 
 ```
 python manage.py runserver 0.0.0.0:8000
 ```
-
-
 
 访问 [http://localhost:8000](http://localhost:8000/)
 
@@ -215,8 +232,6 @@ python manage.py runserver 0.0.0.0:8000
 
 ## 📁 项目结构
 
-text
-
 ```
 django-monitor/
 ├── accounts/          # 用户认证模块
@@ -260,26 +275,11 @@ django-monitor/
 | `/logs/api/ai-analyze-logs/`      | POST | 生成AI日志分析         |
 | `/logs/api/system-logs/`          | GET  | 获取系统日志           |
 
-## 🧪 测试
-
-bash
-
-```
-# 运行所有测试
-python manage.py test
-
-# 测试特定模块
-python manage.py test monitor
-python manage.py test logs
-```
-
 
 
 ## 📊 数据清理
 
 系统提供了数据清理命令：
-
-bash
 
 ```
 # 清空所有采集数据，保留目标配置
@@ -303,61 +303,6 @@ python manage.py clear_all_monitor_data --force
 | 通义千问 | qwen-plus               | DASHSCOPE_API_KEY |
 | OpenAI   | gpt-4o-mini             | OPENAI_API_KEY    |
 | Groq     | llama-3.3-70b-versatile | GROQ_API_KEY      |
-
-### 监控阈值参考
-
-| 指标      | 优秀    | 警告       | 严重     |
-| :-------- | :------ | :--------- | :------- |
-| Ping延迟  | < 50ms  | 50-150ms   | > 150ms  |
-| 丢包率    | < 1%    | 1-5%       | > 5%     |
-| HTTP响应  | < 500ms | 500-2000ms | > 2000ms |
-| 网络抖动  | < 10ms  | 10-25ms    | > 25ms   |
-| TCP重传率 | < 0.5%  | 0.5-2%     | > 2%     |
-
-## ❓ 常见问题
-
-### Q: 定时任务没有执行？
-
-检查APScheduler是否正常启动。查看控制台输出是否有：
-
-text
-
-```
-✅ APScheduler 已成功启动（时区：Asia/Shanghai）
-```
-
-
-
-### Q: AI分析失败？
-
-1. 检查API Key是否正确配置
-2. 确认网络可以访问AI服务
-3. 查看后台错误日志
-
-### Q: 监控数据显示异常？
-
-1. 确认MySQL数据库连接正常
-2. 检查定时任务是否在执行
-3. 使用 `python manage.py clear_all_monitor_data --keep-targets` 清理数据后重启
-
-## 📝 更新日志
-
-### v1.0.0 (2026-04-26)
-
-- ✅ 完整的多目标网络监控功能
-- ✅ AI智能分析与报告生成
-- ✅ 用户认证系统
-- ✅ 系统日志查看与导出
-- ✅ 响应式Web界面
-- ✅ 实时系统资源监控
-
-## 👨‍💻 作者
-
-**Booker Tao** - [GitHub](https://github.com/bookertao)
-
-## 📄 许可证
-
-本项目采用 MIT 许可证 - 详见 [LICENSE](https://license/) 文件
 
 ------
 

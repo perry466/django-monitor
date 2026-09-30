@@ -11,11 +11,15 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings - unsuitable for production
-SECRET_KEY = 'REDACTED'
+# 加载 .env 文件，保证后续 os.environ.get 能读到本地配置
+load_dotenv(BASE_DIR / '.env')
 
-DEBUG = False
-ALLOWED_HOSTS = ['127.0.0.1','localhost','真实域名']
+# Quick-start development settings - unsuitable for production
+# 生产环境请务必通过 .env 或服务器环境变量传入真实值
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-me-before-production')
+
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -66,7 +70,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'network_db',
         'USER': 'root',
-        'PASSWORD': '123456',
+        'PASSWORD': os.environ.get('DB_PASSWORD', '123456'),
         'HOST': 'localhost',
         'PORT': '3306',
         'OPTIONS': {
@@ -101,18 +105,7 @@ USE_TZ = True                  # 推荐保持 True，让 Django 统一用 UTC �
 # Static files
 STATIC_URL = 'static/'
 
-# 加载 .env 文件（只加载一次，避免重复）
-load_dotenv(BASE_DIR / '.env')
-
-
-# ====================== 可选优化（推荐保留） ======================
-# 在模板中可以使用 {{ time|date:"Y-m-d H:i:s" }} 来正确显示本地时间
-
-
-
 # ====================== 认证配置 ======================
 LOGIN_URL = '/login/'                    # 未登录时跳转到登录页
 LOGIN_REDIRECT_URL = '/'                 # 登录成功后默认跳转到仪表盘
 LOGOUT_REDIRECT_URL = '/login/'          # 登出后跳转到登录页
-
-ALLOWED_HOSTS = ['127.0.0.1','localhost']

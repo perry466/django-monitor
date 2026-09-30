@@ -41,7 +41,7 @@ AI智能分析、可视化仪表盘等功能。
 
 ### 1. 环境要求
 
-- Python >= 3.14
+- Python >= 3.12（建议 3.12 ~ 3.14）
 - MySQL >= 8.0
 - pip
 
@@ -105,7 +105,7 @@ export PATH="/usr/local/opt/mysql-client/bin:$PATH"
 ### 4. 克隆项目
 
 ```
-git clone https://github.com/your-repo/django-monitor.git
+git clone https://github.com/perry466/django-monitor.git
 cd django-monitor
 ```
 
@@ -129,37 +129,40 @@ pip install -r requirements.txt
 
 ### 7. 数据库配置
 
-创建MySQL数据库：
+创建 MySQL 数据库和用户（这里以 `root` 用户为例，生产环境建议新建专用账号）：
 
-```
+```sql
 CREATE DATABASE network_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-修改 `djangoproject/settings.py` 中的数据库配置：
+数据库连接信息已经写在 `djangoproject/settings.py` 中，密码会从 `.env` 的 `DB_PASSWORD` 读取。如果你想直接用硬编码密码，也可以临时修改 `settings.py` 里的这一行：
 
-```
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'network_db',
-        'USER': 'your_username',
-        'PASSWORD': 'your_password',
-        'HOST': 'localhost',
-        'PORT': '3306',
-    }
-}
+```python
+'PASSWORD': os.environ.get('DB_PASSWORD', '123456'),
 ```
 
 ### 8. 环境变量配置
 
-复制 `.env` 文件并配置API密钥：
+项目默认从 `.env` 读取 `SECRET_KEY`、`DB_PASSWORD`、`DEBUG` 等敏感配置。**请勿将真实的 `.env` 提交到仓库**，仓库里只保留 `.env.example` 模板。
+
+复制模板并修改为你的真实配置：
+
+```bash
+cp .env.example .env
+```
 
 ```
 # .env
+SECRET_KEY=your-strong-secret-key
+DB_PASSWORD=your_mysql_password
 DEEPSEEK_API_KEY=your_deepseek_api_key
 # OPENAI_API_KEY=your_openai_api_key
 # DASHSCOPE_API_KEY=your_dashscope_api_key
+DEBUG=True
 ```
+
+- `SECRET_KEY`：可以用 `python -c "import secrets; print(secrets.token_urlsafe(50))"` 生成
+- `DB_PASSWORD`：对应步骤 7 里 MySQL 用户的密码
 
 ### 9. 数据库迁移
 
@@ -306,4 +309,11 @@ python manage.py clear_all_monitor_data --force
 
 ------
 
-*如有问题或建议，欢迎提Issue或Pull Request* ❤️
+## 🔒 安全提示
+
+- **不要**将真实的 `.env`、IDE 配置（`.idea/`.vscode/）或 `__pycache__/*.pyc` 提交到 Git。仓库已配置 `.gitignore` 模板，首次配置后请确保 `.env` 不在 `git status` 的追踪列表里。
+- 如果仓库历史上已经泄露过 API 密钥或数据库密码，请尽快在对应平台撤销并重新生成。
+
+------
+
+*如有问题或建议，欢迎提 Issue 或 Pull Request*
